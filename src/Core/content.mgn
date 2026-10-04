@@ -1,0 +1,33 @@
+namespace Levi\Core;
+use Levi\Core\{Page, FormatFailure, cut, asciiAlnum, validTitle};
+public let pageName: Function(String): Bool = function(name: String): Bool {
+    branch when { name->length() < 5 => false, else => cut(name, name->length() - 5, name->length()) == ".page" }
+};
+public let validStem: Function(String): Bool = function(stem: String): Bool {
+    var needsAlnum: Bool = true;
+    loop over (stem->scalars() as scalar: String) {
+        branch when {
+            asciiAlnum(scalar) => { needsAlnum = false; },
+            scalar == "-" && !needsAlnum => { needsAlnum = true; },
+            else => { return false; },
+        };
+    };
+    !needsAlnum
+};
+public let parsePage: Function(String, String, String, String): Result<Page, FormatFailure> = function(name: String, path: String, stem: String, text: String): Result<Page, FormatFailure> {
+    var index: Int = 0; var firstLf: Int = -1;
+    loop over (text->scalars() as scalar: String) {
+        branch when { scalar == "\n" => { firstLf = index; break; }, else => unit }; index = index + 1;
+    };
+    branch when { firstLf < 6 || text->length() <= firstLf + 1 => {
+        return Result<Page, FormatFailure>::Err(FormatFailure { reason: "expected title and blank line", subject: name });
+    }, else => unit };
+    branch when { cut(text, 0, 6) != "title=" || cut(text, firstLf + 1, firstLf + 2) != "\n" => {
+        return Result<Page, FormatFailure>::Err(FormatFailure { reason: "expected title and blank line", subject: name });
+    }, else => unit };
+    let title: String = cut(text, 6, firstLf);
+    branch when { !validTitle(title) => {
+        return Result<Page, FormatFailure>::Err(FormatFailure { reason: "invalid title", subject: name });
+    }, else => unit };
+    Result<Page, FormatFailure>::Ok(Page { sourceName: name, sourcePath: path, stem: stem, title: title, body: cut(text, firstLf + 2, text->length()) })
+};

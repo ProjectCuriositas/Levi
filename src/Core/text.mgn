@@ -1,0 +1,75 @@
+namespace Levi\Core;
+use Levi\Core\{FormatFailure};
+
+public let assembleFragments: Function(List<String>): String = function(parts: List<String>): String { parts->join("") };
+public let cut: Function(String, Int, Int): String = function(text: String, start: Int, end: Int): String {
+    branch on text->slice(start, end) {
+        Result<String, SliceError>::Ok(value: String) => value,
+        Result<String, SliceError>::Err => panic { "internal slice bounds" },
+    }
+};
+public let asciiAlnum: Function(String): Bool = function(scalar: String): Bool {
+    scalar == "a" || scalar == "b" || scalar == "c" || scalar == "d" ||
+    scalar == "e" || scalar == "f" || scalar == "g" || scalar == "h" ||
+    scalar == "i" || scalar == "j" || scalar == "k" || scalar == "l" ||
+    scalar == "m" || scalar == "n" || scalar == "o" || scalar == "p" ||
+    scalar == "q" || scalar == "r" || scalar == "s" || scalar == "t" ||
+    scalar == "u" || scalar == "v" || scalar == "w" || scalar == "x" ||
+    scalar == "y" || scalar == "z" || scalar == "0" || scalar == "1" ||
+    scalar == "2" || scalar == "3" || scalar == "4" || scalar == "5" ||
+    scalar == "6" || scalar == "7" || scalar == "8" || scalar == "9"
+};
+public let forbiddenControl: Function(String): Bool = function(scalar: String): Bool {
+    scalar == "\u{0}" || scalar == "\u{1}" || scalar == "\u{2}" || scalar == "\u{3}" ||
+    scalar == "\u{4}" || scalar == "\u{5}" || scalar == "\u{6}" || scalar == "\u{7}" ||
+    scalar == "\u{8}" || scalar == "\u{b}" || scalar == "\u{c}" || scalar == "\u{e}" ||
+    scalar == "\u{f}" || scalar == "\u{10}" || scalar == "\u{11}" || scalar == "\u{12}" ||
+    scalar == "\u{13}" || scalar == "\u{14}" || scalar == "\u{15}" || scalar == "\u{16}" ||
+    scalar == "\u{17}" || scalar == "\u{18}" || scalar == "\u{19}" || scalar == "\u{1a}" ||
+    scalar == "\u{1b}" || scalar == "\u{1c}" || scalar == "\u{1d}" || scalar == "\u{1e}" ||
+    scalar == "\u{1f}" || scalar == "\u{7f}"
+};
+public let validTitle: Function(String): Bool = function(text: String): Bool {
+    var nonspace: Bool = false;
+    loop over (text->scalars() as scalar: String) {
+        branch when { scalar == "\t" || scalar == "\n" => { return false; }, else => unit };
+        branch when { scalar != " " => { nonspace = true; }, else => unit };
+    };
+    nonspace
+};
+public let normalizeText: Function(String): Result<String, FormatFailure> = function(text: String): Result<String, FormatFailure> {
+    var first: Bool = true;
+    var pendingCr: Bool = false;
+    var parts: List<String> = List<String>[];
+    loop over (text->scalars() as scalar: String) {
+        branch when { first && scalar == "\u{feff}" => {
+            return Result<String, FormatFailure>::Err(FormatFailure { reason: "leading BOM", subject: "text" });
+        }, else => unit };
+        first = false;
+        branch when { pendingCr => {
+            branch when { scalar != "\n" => {
+                return Result<String, FormatFailure>::Err(FormatFailure { reason: "isolated CR", subject: "text" });
+            }, else => unit };
+            parts = parts->append("\n"); pendingCr = false; continue;
+        }, else => unit };
+        branch when { scalar == "\r" => { pendingCr = true; continue; }, else => unit };
+        branch when { forbiddenControl(scalar) => {
+            return Result<String, FormatFailure>::Err(FormatFailure { reason: "forbidden control", subject: "text" });
+        }, else => unit };
+        parts = parts->append(scalar);
+    };
+    branch when { pendingCr => {
+        return Result<String, FormatFailure>::Err(FormatFailure { reason: "isolated CR", subject: "text" });
+    }, else => unit };
+    Result<String, FormatFailure>::Ok(assembleFragments(parts))
+};
+public let splitLines: Function(String): List<String> = function(text: String): List<String> {
+    var lines: List<String> = List<String>[];
+    var parts: List<String> = List<String>[];
+    loop over (text->scalars() as scalar: String) {
+        branch when { scalar == "\n" => {
+            lines = lines->append(parts->join("")); parts = List<String>[];
+        }, else => { parts = parts->append(scalar); } };
+    };
+    lines->append(parts->join(""))
+};

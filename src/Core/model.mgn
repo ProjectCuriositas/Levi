@@ -1,0 +1,17 @@
+namespace Levi\Core;
+use Std\Io\{IoError};
+public type BuildCommand = product { configPath: String; };
+public type SiteConfig = product { title: String; inputRelative: String; outputRelative: String; };
+public type SitePaths = product { configPath: String; base: String; inputRoot: String; outputRoot: String; };
+public type Page = product { sourceName: String; sourcePath: String; stem: String; title: String; body: String; };
+public type OutputName = product { sourcePath: String; fileName: String; path: String; };
+public type OutputItem = product { fileName: String; path: String; html: String; };
+public type OutputPlan = product { outputRoot: String; items: List<OutputItem>; };
+public type OutputState = sum { ExistingEmpty; CreateRequired; };
+public type PreparedBuild = product { plan: OutputPlan; state: OutputState; };
+public type FormatFailure = product { reason: String; subject: String; };
+public type FormatContext = product { path: String; failure: FormatFailure; };
+public type BuildError = sum {
+    Usage(FormatFailure); Config(FormatContext); Content(FormatContext);
+    EmptyInput(String); OutputNotEmpty(String); OutputCollision(FormatFailure); Io(IoError);
+};

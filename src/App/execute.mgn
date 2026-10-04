@@ -1,0 +1,17 @@
+namespace Levi\App;
+use Levi\Core\{BuildCommand, BuildError, PreparedBuild, parseCommand, formatDiagnostic};
+use Levi\App\{IoFunctions, prepareBuild, publishBuild};
+public let execute: Function(List<String>, IoFunctions): Int = function(args: List<String>, io: IoFunctions): Int {
+    let command: BuildCommand = branch on parseCommand(args) {
+        Result<BuildCommand, BuildError>::Ok(value: BuildCommand) => value,
+        Result<BuildCommand, BuildError>::Err(error: BuildError) => { discard io->writeStderr(formatDiagnostic(error)); return 2; },
+    };
+    let prepared: PreparedBuild = branch on prepareBuild(command, io) {
+        Result<PreparedBuild, BuildError>::Ok(value: PreparedBuild) => value,
+        Result<PreparedBuild, BuildError>::Err(error: BuildError) => { discard io->writeStderr(formatDiagnostic(error)); return 1; },
+    };
+    branch on publishBuild(prepared, io) {
+        Result<Unit, BuildError>::Ok => 0,
+        Result<Unit, BuildError>::Err(error: BuildError) => { discard io->writeStderr(formatDiagnostic(error)); 1 },
+    }
+};

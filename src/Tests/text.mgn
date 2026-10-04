@@ -1,0 +1,19 @@
+namespace Levi\Tests;
+use Levi\Core\{normalizeText, FormatFailure, escapeHtml, quoteSubject};
+@test let textEnvelope: Function(): Unit = function(): Unit {
+    loop over (List<String>["", "日本😀e\u{301}", "a\nb\n", "\t\n", "x\u{feff}", "\u{80}\u{2028}"] as text: String) {
+        assert branch on normalizeText(text) { Result<String, FormatFailure>::Ok(value: String) => value == text, Result<String, FormatFailure>::Err => false };
+    };
+    assert branch on normalizeText("a\r\nb\n\r\n") { Result<String, FormatFailure>::Ok(value: String) => value == "a\nb\n\n", Result<String, FormatFailure>::Err => false };
+    loop over (List<String>["\u{feff}a", "\r", "a\rb", "\r\r\n", "x\0", "\u{1}", "\u{8}", "\u{b}", "\u{c}", "\u{1f}", "\u{7f}"] as invalid: String) {
+        assert branch on normalizeText(invalid) { Result<String, FormatFailure>::Ok => false, Result<String, FormatFailure>::Err => true };
+    };
+};
+@test let textConstruction: Function(): Unit = function(): Unit {
+    assert List<String>[]->join("") == "";
+    assert List<String>[""]->join("|") == "";
+    assert List<String>["a", "", "日本", "😀"]->join("") == "a日本😀";
+    assert List<String>["a", "", "日"]->join("|") == "a||日";
+    assert escapeHtml("&<>\"'&amp;日本😀") == "&amp;&lt;&gt;&quot;&#39;&amp;amp;日本😀";
+    assert quoteSubject("a\n\r\t\\\"\0\u{7f}\u{85}\u{2028}\u{2029}") == "\"a\\n\\r\\t\\\\\\\"\\u{0}\\u{7f}\\u{85}\\u{2028}\\u{2029}\"";
+};

@@ -1,0 +1,35 @@
+namespace Levi\Tests;
+use Levi\Core\{Page, renderPage, OutputName, validateOutputNames, BuildError, OutputPlan, OutputItem, SitePaths, buildOutputPlan};
+@test let exactRendering: Function(): Unit = function(): Unit {
+    let page: Page = Page { sourceName: "home.page", sourcePath: "c/home.page", stem: "home", title: "Home & More", body: "<hello>" };
+    assert renderPage("小さなサイト", page) == "<!doctype html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<title>Home &amp; More | 小さなサイト</title>\n</head>\n<body>\n<h1>Home &amp; More</h1>\n<pre>\n&lt;hello&gt;</pre>\n</body>\n</html>\n";
+    let symbols: Page = Page { sourceName: "a.page", sourcePath: "c/a.page", stem: "a", title: "&<>\"'", body: "&amp;\n" };
+    assert renderPage("&<>\"'", symbols) == "<!doctype html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<title>&amp;&lt;&gt;&quot;&#39; | &amp;&lt;&gt;&quot;&#39;</title>\n</head>\n<body>\n<h1>&amp;&lt;&gt;&quot;&#39;</h1>\n<pre>\n&amp;amp;\n</pre>\n</body>\n</html>\n";
+};
+@test let outputPlanning: Function(): Unit = function(): Unit {
+    let a: OutputName = OutputName { sourcePath: "a", fileName: "a.html", path: "p/a.html" };
+    let b: OutputName = OutputName { sourcePath: "b", fileName: "b.html", path: "p/b.html" };
+    assert branch on validateOutputNames(List<OutputName>[a,b]) { Result<Unit, BuildError>::Ok => true, Result<Unit, BuildError>::Err => false };
+    assert branch on validateOutputNames(List<OutputName>[a,a]) { Result<Unit, BuildError>::Ok => false, Result<Unit, BuildError>::Err => true };
+    assert branch on validateOutputNames(List<OutputName>[a,b,a]) { Result<Unit, BuildError>::Ok => false, Result<Unit, BuildError>::Err => true };
+    let paths: SitePaths = SitePaths { configPath: "site", base: ".", inputRoot: "c", outputRoot: "p" };
+    assert branch on buildOutputPlan("S", paths, List<Page>[]) { Result<OutputPlan, BuildError>::Ok => false, Result<OutputPlan, BuildError>::Err => true };
+};
+
+@test let planOrderAndBytes: Function(): Unit = function(): Unit {
+    let paths: SitePaths = SitePaths { configPath: "site", base: ".", inputRoot: "c", outputRoot: "p" };
+    let a: Page = Page { sourceName: "a.page", sourcePath: "c/a.page", stem: "a", title: "A", body: "" };
+    let b: Page = Page { sourceName: "b.page", sourcePath: "c/b.page", stem: "b", title: "B", body: "B" };
+    let plan: OutputPlan = branch on buildOutputPlan("S", paths, List<Page>[a,b]) {
+        Result<OutputPlan, BuildError>::Ok(value: OutputPlan) => value,
+        Result<OutputPlan, BuildError>::Err => panic { "valid plan failed" },
+    };
+    assert plan->items->length() == 2;
+    var names: List<String> = List<String>[];
+    loop over (plan->items as item: OutputItem) {
+        names = names->append(item->fileName);
+        branch when { item->fileName == "a.html" => { assert item->path == "p/a.html"; assert item->html == renderPage("S", a); },
+            else => { assert item->path == "p/b.html"; assert item->html == renderPage("S", b); } };
+    };
+    assert names->join(",") == "a.html,b.html";
+};
