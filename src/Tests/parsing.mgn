@@ -1,0 +1,55 @@
+namespace Levi\Tests;
+use Std\Io\{IoError};
+use Levi\Core\{BuildCommand, BuildError, FormatFailure, SiteConfig, SitePaths, Page,
+    formatDiagnostic, quoteSubject, parseCommand, parseConfig, validRelative, isAncestor, resolvePaths, parsePage, pageName, validStem};
+@test let commandGrammar: Function(): Unit = function(): Unit {
+    loop over (List<List<String>>[List<String>[], List<String>["build"], List<String>["help", "x"], List<String>["build", ""], List<String>["build", "x", "y"]] as args: List<String>) {
+        assert branch on parseCommand(args) { Result<BuildCommand, BuildError>::Ok => false, Result<BuildCommand, BuildError>::Err => true };
+    };
+    assert branch on parseCommand(List<String>["build", "space dir/site.cfg"]) { Result<BuildCommand, BuildError>::Ok(value: BuildCommand) => value->configPath == "space dir/site.cfg", Result<BuildCommand, BuildError>::Err => false };
+};
+@test let configGrammar: Function(): Unit = function(): Unit {
+    loop over (List<String>["title= S=1 \ninput=content\noutput=public", "\noutput=public\n\ninput=content\ntitle= S=1 \n"] as text: String) {
+        assert branch on parseConfig(text) { Result<SiteConfig, FormatFailure>::Ok(value: SiteConfig) => value->title == " S=1 " && value->inputRelative == "content" && value->outputRelative == "public", Result<SiteConfig, FormatFailure>::Err => false };
+    };
+    loop over (List<String>["", "title=A\ninput=content", "title=A\ninput=content\noutput=public\nx=y", "title=A\ntitle=B\ninput=c\noutput=p", "title=\ninput=c\noutput=p", "title= \ninput=c\noutput=p", "title=A\tB\ninput=c\noutput=p", "title=A\ninput=c\noutput=c", "title=A\ninput=c/a\noutput=c", "title=A\ninput=c\noutput=c/a", "title=A\ninput=c\noutput=/p", " title=A\ninput=c\noutput=p", "title=A\ninput=c\noutput=p\n# comment"] as invalid: String) {
+        assert branch on parseConfig(invalid) { Result<SiteConfig, FormatFailure>::Ok => false, Result<SiteConfig, FormatFailure>::Err => true };
+    };
+    assert branch on parseConfig("title=\"quoted\"\ninput=content\noutput=content2") { Result<SiteConfig, FormatFailure>::Ok(value: SiteConfig) => value->title == "\"quoted\"", Result<SiteConfig, FormatFailure>::Err => false };
+};
+@test let pathGrammar: Function(): Unit = function(): Unit {
+    loop over (List<String>["c", "a/b", "a_-b/0-z_"] as valid: String) { assert validRelative(valid); };
+    loop over (List<String>["", "/a", "a/", "a//b", ".", "..", "a/../b", "a/./b", "A", "a b", "a\\b", "日", "_a", "a/-b"] as invalid: String) { assert !validRelative(invalid); };
+    assert isAncestor("a", "a/b"); assert !isAncestor("a", "ab");
+    let config: SiteConfig = SiteConfig { title: "S", inputRelative: "c", outputRelative: "p" };
+    assert branch on resolvePaths("site", config) { Result<SitePaths, IoError>::Ok(value: SitePaths) => value->base == "." && value->inputRoot == "./c", Result<SitePaths, IoError>::Err => false };
+    assert branch on resolvePaths("/site", config) { Result<SitePaths, IoError>::Ok(value: SitePaths) => value->base == "/" && value->inputRoot == "/c", Result<SitePaths, IoError>::Err => false };
+    assert branch on resolvePaths("cfg//site", config) { Result<SitePaths, IoError>::Ok(value: SitePaths) => value->base == "cfg/" && value->outputRoot == "cfg/p", Result<SitePaths, IoError>::Err => false };
+};
+@test let pageGrammar: Function(): Unit = function(): Unit {
+    assert pageName("a.page"); assert !pageName("a.PAGE"); assert !pageName("x");
+    loop over (List<String>["a", "a-b", "01-a"] as valid: String) { assert validStem(valid); };
+    loop over (List<String>["", "About", "a_b", "a--b", "-a", "a-", "日"] as invalid: String) { assert !validStem(invalid); };
+    assert branch on parsePage("a.page", "c/a.page", "a", "title= T \n\n") { Result<Page, FormatFailure>::Ok(value: Page) => value->title == " T " && value->body == "", Result<Page, FormatFailure>::Err => false };
+    assert branch on parsePage("a.page", "c/a.page", "a", "title=T\n\n\n\ttitle='x'\n") { Result<Page, FormatFailure>::Ok(value: Page) => value->body == "\n\ttitle='x'\n", Result<Page, FormatFailure>::Err => false };
+    loop over (List<String>["", "title=\n\n", "title= \n\n", "title=T", "title=T\n", "title=T\n \nbody", "Title=T\n\n", "title=T\t\n\n"] as invalid: String) {
+        assert branch on parsePage("a.page", "c/a.page", "a", invalid) { Result<Page, FormatFailure>::Ok => false, Result<Page, FormatFailure>::Err => true };
+    };
+};
+
+@test let usageDiagnostics: Function(): Unit = function(): Unit {
+    loop over (List<String>["help", "bad\n\"\\\u{2028}"] as command: String) {
+        assert branch on parseCommand(List<String>[command, "site.cfg"]) {
+            Result<BuildCommand, BuildError>::Ok => false,
+            Result<BuildCommand, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == "levi: usage: unknown command " + quoteSubject(command) + "; expected levi build <config-path>\n"
+        };
+    };
+    assert branch on parseCommand(List<String>["build", ""]) {
+        Result<BuildCommand, BuildError>::Ok => false,
+        Result<BuildCommand, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == "levi: usage: empty config path \"\"; expected levi build <config-path>\n"
+    };
+    assert branch on parseCommand(List<String>[]) {
+        Result<BuildCommand, BuildError>::Ok => false,
+        Result<BuildCommand, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == "levi: usage: invalid argument count \"arguments\"; expected levi build <config-path>\n"
+    };
+};

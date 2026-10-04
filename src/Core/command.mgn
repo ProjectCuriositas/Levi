@@ -1,0 +1,11 @@
+namespace Levi\Core;
+use Levi\Core\{BuildCommand, BuildError, FormatFailure};
+public let parseCommand: Function(List<String>): Result<BuildCommand, BuildError> = function(args: List<String>): Result<BuildCommand, BuildError> {
+    let failure: BuildError = BuildError::Usage(FormatFailure { reason: "invalid argument count", subject: "arguments" });
+    branch when { args->length() != 2 => { return Result<BuildCommand, BuildError>::Err(failure); }, else => unit };
+    let command: String = branch on args->at(0) { Result<String, IndexError>::Ok(value: String) => value, Result<String, IndexError>::Err => panic { "argv bounds" } };
+    let path: String = branch on args->at(1) { Result<String, IndexError>::Ok(value: String) => value, Result<String, IndexError>::Err => panic { "argv bounds" } };
+    branch when { command != "build" => Result<BuildCommand, BuildError>::Err(BuildError::Usage(FormatFailure { reason: "unknown command", subject: command })),
+        path == "" => Result<BuildCommand, BuildError>::Err(BuildError::Usage(FormatFailure { reason: "empty config path", subject: path })),
+        else => Result<BuildCommand, BuildError>::Ok(BuildCommand { configPath: path }) }
+};

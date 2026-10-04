@@ -1,0 +1,126 @@
+namespace Levi\Core;
+use Std\Io\{IoError, IoOperation, IoErrorKind, IoErrorPhase};
+use Levi\Core\{BuildError, FormatFailure, FormatContext};
+public let quoteSubject: Function(String): String = function(text: String): String {
+    var parts: List<String> = List<String>["\""];
+    loop over (text->scalars() as scalar: String) {
+        parts = parts->append(branch when {
+            scalar == "\\" => "\\\\",
+            scalar == "\"" => "\\\"",
+            scalar == "\u{a}" => "\\n",
+            scalar == "\u{d}" => "\\r",
+            scalar == "\u{9}" => "\\t",
+            scalar == "\u{0}" => "\\u{0}",
+            scalar == "\u{1}" => "\\u{1}",
+            scalar == "\u{2}" => "\\u{2}",
+            scalar == "\u{3}" => "\\u{3}",
+            scalar == "\u{4}" => "\\u{4}",
+            scalar == "\u{5}" => "\\u{5}",
+            scalar == "\u{6}" => "\\u{6}",
+            scalar == "\u{7}" => "\\u{7}",
+            scalar == "\u{8}" => "\\u{8}",
+            scalar == "\u{b}" => "\\u{b}",
+            scalar == "\u{c}" => "\\u{c}",
+            scalar == "\u{e}" => "\\u{e}",
+            scalar == "\u{f}" => "\\u{f}",
+            scalar == "\u{10}" => "\\u{10}",
+            scalar == "\u{11}" => "\\u{11}",
+            scalar == "\u{12}" => "\\u{12}",
+            scalar == "\u{13}" => "\\u{13}",
+            scalar == "\u{14}" => "\\u{14}",
+            scalar == "\u{15}" => "\\u{15}",
+            scalar == "\u{16}" => "\\u{16}",
+            scalar == "\u{17}" => "\\u{17}",
+            scalar == "\u{18}" => "\\u{18}",
+            scalar == "\u{19}" => "\\u{19}",
+            scalar == "\u{1a}" => "\\u{1a}",
+            scalar == "\u{1b}" => "\\u{1b}",
+            scalar == "\u{1c}" => "\\u{1c}",
+            scalar == "\u{1d}" => "\\u{1d}",
+            scalar == "\u{1e}" => "\\u{1e}",
+            scalar == "\u{1f}" => "\\u{1f}",
+            scalar == "\u{7f}" => "\\u{7f}",
+            scalar == "\u{80}" => "\\u{80}",
+            scalar == "\u{81}" => "\\u{81}",
+            scalar == "\u{82}" => "\\u{82}",
+            scalar == "\u{83}" => "\\u{83}",
+            scalar == "\u{84}" => "\\u{84}",
+            scalar == "\u{85}" => "\\u{85}",
+            scalar == "\u{86}" => "\\u{86}",
+            scalar == "\u{87}" => "\\u{87}",
+            scalar == "\u{88}" => "\\u{88}",
+            scalar == "\u{89}" => "\\u{89}",
+            scalar == "\u{8a}" => "\\u{8a}",
+            scalar == "\u{8b}" => "\\u{8b}",
+            scalar == "\u{8c}" => "\\u{8c}",
+            scalar == "\u{8d}" => "\\u{8d}",
+            scalar == "\u{8e}" => "\\u{8e}",
+            scalar == "\u{8f}" => "\\u{8f}",
+            scalar == "\u{90}" => "\\u{90}",
+            scalar == "\u{91}" => "\\u{91}",
+            scalar == "\u{92}" => "\\u{92}",
+            scalar == "\u{93}" => "\\u{93}",
+            scalar == "\u{94}" => "\\u{94}",
+            scalar == "\u{95}" => "\\u{95}",
+            scalar == "\u{96}" => "\\u{96}",
+            scalar == "\u{97}" => "\\u{97}",
+            scalar == "\u{98}" => "\\u{98}",
+            scalar == "\u{99}" => "\\u{99}",
+            scalar == "\u{9a}" => "\\u{9a}",
+            scalar == "\u{9b}" => "\\u{9b}",
+            scalar == "\u{9c}" => "\\u{9c}",
+            scalar == "\u{9d}" => "\\u{9d}",
+            scalar == "\u{9e}" => "\\u{9e}",
+            scalar == "\u{9f}" => "\\u{9f}",
+            scalar == "\u{2028}" => "\\u{2028}",
+            scalar == "\u{2029}" => "\\u{2029}",
+            else => scalar,
+        });
+    };
+    parts->append("\"")->join("")
+};
+let labelIoOperation: Function(IoOperation): String = function(value: IoOperation): String {
+    branch on value {
+        IoOperation::ReadTextFile => "ReadTextFile",
+        IoOperation::WriteTextFile => "WriteTextFile",
+        IoOperation::ReadStdin => "ReadStdin",
+        IoOperation::WriteStdout => "WriteStdout",
+        IoOperation::WriteStderr => "WriteStderr",
+        IoOperation::JoinPath => "JoinPath",
+        IoOperation::ReadDirectory => "ReadDirectory",
+        IoOperation::CreateDirectory => "CreateDirectory",
+    }
+};
+let labelIoErrorKind: Function(IoErrorKind): String = function(value: IoErrorKind): String {
+    branch on value {
+        IoErrorKind::InvalidPath => "InvalidPath",
+        IoErrorKind::InvalidEncoding => "InvalidEncoding",
+        IoErrorKind::NotFound => "NotFound",
+        IoErrorKind::PermissionDenied => "PermissionDenied",
+        IoErrorKind::UnsupportedTarget => "UnsupportedTarget",
+        IoErrorKind::BrokenPipe => "BrokenPipe",
+        IoErrorKind::ResourceExhausted => "ResourceExhausted",
+        IoErrorKind::Other => "Other",
+    }
+};
+let labelIoErrorPhase: Function(IoErrorPhase): String = function(value: IoErrorPhase): String {
+    branch on value {
+        IoErrorPhase::Input => "Input",
+        IoErrorPhase::Target => "Target",
+        IoErrorPhase::Body => "Body",
+        IoErrorPhase::Cleanup => "Cleanup",
+    }
+};
+
+public let formatDiagnostic: Function(BuildError): String = function(error: BuildError): String {
+    let detail: String = branch on error {
+        BuildError::Usage(problem: FormatFailure) => "usage: " + problem->reason + " " + quoteSubject(problem->subject) + "; expected levi build <config-path>",
+        BuildError::Config(context: FormatContext) => "config: " + quoteSubject(context->path) + " " + context->failure->reason + " " + quoteSubject(context->failure->subject),
+        BuildError::Content(context: FormatContext) => "content: " + quoteSubject(context->path) + " " + context->failure->reason,
+        BuildError::EmptyInput(path: String) => "empty-input: " + quoteSubject(path),
+        BuildError::OutputNotEmpty(path: String) => "output-not-empty: " + quoteSubject(path),
+        BuildError::OutputCollision(problem: FormatFailure) => "output-collision: " + quoteSubject(problem->reason) + " " + quoteSubject(problem->subject),
+        BuildError::Io(failure: IoError) => List<String>["io: operation=", labelIoOperation(failure->operation), " kind=", labelIoErrorKind(failure->kind), " subject=", quoteSubject(failure->subject), " phase=", labelIoErrorPhase(failure->phase)]->join(""),
+    };
+    "levi: " + detail + "\n"
+};

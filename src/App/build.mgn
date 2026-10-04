@@ -1,0 +1,73 @@
+namespace Levi\App;
+use Std\Io\{IoError, DirectoryEntry, DirectoryEntryKind, joinPath};
+use Levi\Core\{BuildCommand, BuildError, FormatFailure, FormatContext, SiteConfig, SitePaths, Page,
+    OutputPlan, OutputState, OutputItem, PreparedBuild, normalizeText, parseConfig, resolvePaths,
+    pageName, validStem, cut, parsePage, buildOutputPlan, classifyOutput};
+use Levi\App\{IoFunctions};
+public let prepareBuild: Function(BuildCommand, IoFunctions): Result<PreparedBuild, BuildError> = function(command: BuildCommand, io: IoFunctions): Result<PreparedBuild, BuildError> {
+    let raw: String = branch on io->readTextFile(command->configPath) {
+        Result<String, IoError>::Ok(value: String) => value,
+        Result<String, IoError>::Err(error: IoError) => { return Result<PreparedBuild, BuildError>::Err(BuildError::Io(error)); },
+    };
+    let text: String = branch on normalizeText(raw) {
+        Result<String, FormatFailure>::Ok(value: String) => value,
+        Result<String, FormatFailure>::Err(error: FormatFailure) => { return Result<PreparedBuild, BuildError>::Err(BuildError::Config(FormatContext { path: command->configPath, failure: error })); },
+    };
+    let config: SiteConfig = branch on parseConfig(text) {
+        Result<SiteConfig, FormatFailure>::Ok(value: SiteConfig) => value,
+        Result<SiteConfig, FormatFailure>::Err(error: FormatFailure) => { return Result<PreparedBuild, BuildError>::Err(BuildError::Config(FormatContext { path: command->configPath, failure: error })); },
+    };
+    let paths: SitePaths = branch on resolvePaths(command->configPath, config) {
+        Result<SitePaths, IoError>::Ok(value: SitePaths) => value,
+        Result<SitePaths, IoError>::Err(error: IoError) => { return Result<PreparedBuild, BuildError>::Err(BuildError::Io(error)); },
+    };
+    let entries: List<DirectoryEntry> = branch on io->readDirectory(paths->inputRoot) {
+        Result<List<DirectoryEntry>, IoError>::Ok(value: List<DirectoryEntry>) => value,
+        Result<List<DirectoryEntry>, IoError>::Err(error: IoError) => { return Result<PreparedBuild, BuildError>::Err(BuildError::Io(error)); },
+    };
+    var pages: List<Page> = List<Page>[];
+    loop over (entries as entry: DirectoryEntry) {
+        let regular: Bool = branch on entry->kind { DirectoryEntryKind::File => true, DirectoryEntryKind::Directory => false, DirectoryEntryKind::Symlink => false, DirectoryEntryKind::Other => false };
+        branch when { !regular || !pageName(entry->name) => { continue; }, else => unit };
+        let path: String = branch on joinPath(paths->inputRoot, entry->name) {
+            Result<String, IoError>::Ok(value: String) => value,
+            Result<String, IoError>::Err(error: IoError) => { return Result<PreparedBuild, BuildError>::Err(BuildError::Io(error)); },
+        };
+        let stem: String = cut(entry->name, 0, entry->name->length() - 5);
+        branch when { !validStem(stem) => { return Result<PreparedBuild, BuildError>::Err(BuildError::Content(FormatContext { path: path, failure: FormatFailure { reason: "invalid stem", subject: entry->name } })); }, else => unit };
+        let pageRaw: String = branch on io->readTextFile(path) {
+            Result<String, IoError>::Ok(value: String) => value,
+            Result<String, IoError>::Err(error: IoError) => { return Result<PreparedBuild, BuildError>::Err(BuildError::Io(error)); },
+        };
+        let pageText: String = branch on normalizeText(pageRaw) {
+            Result<String, FormatFailure>::Ok(value: String) => value,
+            Result<String, FormatFailure>::Err(error: FormatFailure) => { return Result<PreparedBuild, BuildError>::Err(BuildError::Content(FormatContext { path: path, failure: error })); },
+        };
+        let page: Page = branch on parsePage(entry->name, path, stem, pageText) {
+            Result<Page, FormatFailure>::Ok(value: Page) => value,
+            Result<Page, FormatFailure>::Err(error: FormatFailure) => { return Result<PreparedBuild, BuildError>::Err(BuildError::Content(FormatContext { path: path, failure: error })); },
+        };
+        pages = pages->append(page);
+    };
+    let plan: OutputPlan = try buildOutputPlan(config->title, paths, pages);
+    let state: OutputState = try classifyOutput(paths->outputRoot, io->readDirectory(paths->outputRoot));
+    Result<PreparedBuild, BuildError>::Ok(PreparedBuild { plan: plan, state: state })
+};
+public let publishBuild: Function(PreparedBuild, IoFunctions): Result<Unit, BuildError> = function(build: PreparedBuild, io: IoFunctions): Result<Unit, BuildError> {
+    branch on build->state {
+        OutputState::ExistingEmpty => unit,
+        OutputState::CreateRequired => {
+            branch on io->createDirectory(build->plan->outputRoot) {
+                Result<Unit, IoError>::Ok => unit,
+                Result<Unit, IoError>::Err(error: IoError) => { return Result<Unit, BuildError>::Err(BuildError::Io(error)); },
+            };
+        },
+    };
+    loop over (build->plan->items as item: OutputItem) {
+        branch on io->writeTextFile(item->path, item->html) {
+            Result<Unit, IoError>::Ok => unit,
+            Result<Unit, IoError>::Err(error: IoError) => { return Result<Unit, BuildError>::Err(BuildError::Io(error)); },
+        };
+    };
+    Result<Unit, BuildError>::Ok(unit)
+};

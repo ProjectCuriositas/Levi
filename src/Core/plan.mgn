@@ -1,0 +1,62 @@
+namespace Levi\Core;
+use Std\Io\{IoError, IoErrorKind, IoErrorPhase, IoOperation, DirectoryEntry, joinPath};
+use Levi\Core\{Page, SitePaths, OutputName, OutputItem, OutputPlan, OutputState, BuildError, FormatFailure, renderPage};
+public let validateOutputNames: Function(List<OutputName>): Result<Unit, BuildError> = function(names: List<OutputName>): Result<Unit, BuildError> {
+    var seen: List<String> = List<String>[];
+    loop over (names as item: OutputName) {
+        loop over (seen as previous: String) {
+            branch when { previous == item->fileName => {
+                return Result<Unit, BuildError>::Err(BuildError::OutputCollision(FormatFailure { reason: item->fileName, subject: item->sourcePath }));
+            }, else => unit };
+        };
+        seen = seen->append(item->fileName);
+    };
+    Result<Unit, BuildError>::Ok(unit)
+};
+public let buildOutputPlan: Function(String, SitePaths, List<Page>): Result<OutputPlan, BuildError> = function(title: String, paths: SitePaths, pages: List<Page>): Result<OutputPlan, BuildError> {
+    branch when { pages->length() == 0 => { return Result<OutputPlan, BuildError>::Err(BuildError::EmptyInput(paths->inputRoot)); }, else => unit };
+    var names: List<OutputName> = List<OutputName>[];
+    var items: List<OutputItem> = List<OutputItem>[];
+    loop over (pages as page: Page) {
+        let name: String = page->stem + ".html";
+        let path: String = branch on joinPath(paths->outputRoot, name) {
+            Result<String, IoError>::Ok(value: String) => value,
+            Result<String, IoError>::Err(error: IoError) => { return Result<OutputPlan, BuildError>::Err(BuildError::Io(error)); },
+        };
+        names = names->append(OutputName { sourcePath: page->sourcePath, fileName: name, path: path });
+    };
+    try validateOutputNames(names);
+    // The same ordered pages produce the already validated names, without indexed list traversal.
+    loop over (pages as page: Page) {
+        let name: String = page->stem + ".html";
+        let path: String = branch on joinPath(paths->outputRoot, name) {
+            Result<String, IoError>::Ok(value: String) => value,
+            Result<String, IoError>::Err(error: IoError) => { return Result<OutputPlan, BuildError>::Err(BuildError::Io(error)); },
+        };
+        items = items->append(OutputItem { fileName: name, path: path, html: renderPage(title, page) });
+    };
+    Result<OutputPlan, BuildError>::Ok(OutputPlan { outputRoot: paths->outputRoot, items: items })
+};
+public let classifyOutput: Function(String, Result<List<DirectoryEntry>, IoError>): Result<OutputState, BuildError> = function(root: String, result: Result<List<DirectoryEntry>, IoError>): Result<OutputState, BuildError> {
+    branch on result {
+        Result<List<DirectoryEntry>, IoError>::Ok(entries: List<DirectoryEntry>) => branch when {
+            entries->length() == 0 => Result<OutputState, BuildError>::Ok(OutputState::ExistingEmpty),
+            else => Result<OutputState, BuildError>::Err(BuildError::OutputNotEmpty(root)),
+        },
+        Result<List<DirectoryEntry>, IoError>::Err(error: IoError) => {
+            let directory: Bool = branch on error->operation {
+                IoOperation::ReadDirectory => true, IoOperation::ReadTextFile => false, IoOperation::WriteTextFile => false,
+                IoOperation::ReadStdin => false, IoOperation::WriteStdout => false, IoOperation::WriteStderr => false,
+                IoOperation::JoinPath => false, IoOperation::CreateDirectory => false,
+            };
+            let target: Bool = branch on error->phase { IoErrorPhase::Target => true, IoErrorPhase::Input => false, IoErrorPhase::Body => false, IoErrorPhase::Cleanup => false };
+            let absent: Bool = branch on error->kind {
+                IoErrorKind::NotFound => true, IoErrorKind::InvalidPath => false, IoErrorKind::InvalidEncoding => false,
+                IoErrorKind::PermissionDenied => false, IoErrorKind::UnsupportedTarget => false, IoErrorKind::BrokenPipe => false,
+                IoErrorKind::ResourceExhausted => false, IoErrorKind::Other => false,
+            };
+            branch when { directory && target && absent && error->subject == root => Result<OutputState, BuildError>::Ok(OutputState::CreateRequired),
+                else => Result<OutputState, BuildError>::Err(BuildError::Io(error)) }
+        },
+    }
+};

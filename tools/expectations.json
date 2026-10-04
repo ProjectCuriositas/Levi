@@ -1,0 +1,1896 @@
+{
+  "tests": {
+    "phaseClassification": "src/Tests/build.mgn::Levi\\\\Tests::phaseClassification",
+    "usageHasNoFilesystemEffects": "src/Tests/build.mgn::Levi\\\\Tests::usageHasNoFilesystemEffects",
+    "firstPageFailureStopsPreflight": "src/Tests/build.mgn::Levi\\\\Tests::firstPageFailureStopsPreflight",
+    "publishStopsAtFirstFailure": "src/Tests/build.mgn::Levi\\\\Tests::publishStopsAtFirstFailure",
+    "phaseGuardThroughPrepare": "src/Tests/build.mgn::Levi\\\\Tests::phaseGuardThroughPrepare",
+    "inputIoIsPreserved": "src/Tests/build.mgn::Levi\\\\Tests::inputIoIsPreserved",
+    "createFailureStopsWrites": "src/Tests/build.mgn::Levi\\\\Tests::createFailureStopsWrites",
+    "selectedKindsOnly": "src/Tests/build.mgn::Levi\\\\Tests::selectedKindsOnly",
+    "laterPageFailureStopsPreflight": "src/Tests/build.mgn::Levi\\\\Tests::laterPageFailureStopsPreflight",
+    "referenceSite": "src/Tests/filesystem.mgn::Levi\\\\Tests::referenceSite",
+    "commandGrammar": "src/Tests/parsing.mgn::Levi\\\\Tests::commandGrammar",
+    "configGrammar": "src/Tests/parsing.mgn::Levi\\\\Tests::configGrammar",
+    "pathGrammar": "src/Tests/parsing.mgn::Levi\\\\Tests::pathGrammar",
+    "pageGrammar": "src/Tests/parsing.mgn::Levi\\\\Tests::pageGrammar",
+    "usageDiagnostics": "src/Tests/parsing.mgn::Levi\\\\Tests::usageDiagnostics",
+    "exactRendering": "src/Tests/rendering.mgn::Levi\\\\Tests::exactRendering",
+    "outputPlanning": "src/Tests/rendering.mgn::Levi\\\\Tests::outputPlanning",
+    "planOrderAndBytes": "src/Tests/rendering.mgn::Levi\\\\Tests::planOrderAndBytes",
+    "textEnvelope": "src/Tests/text.mgn::Levi\\\\Tests::textEnvelope",
+    "textConstruction": "src/Tests/text.mgn::Levi\\\\Tests::textConstruction"
+  },
+  "conformance": {
+    "CL001-01": {
+      "tests": [
+        "commandGrammar",
+        "configGrammar",
+        "referenceSite"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "config-order-0",
+          "native"
+        ],
+        [
+          "config-order-0",
+          "run"
+        ],
+        [
+          "config-order-1",
+          "native"
+        ],
+        [
+          "config-order-1",
+          "run"
+        ],
+        [
+          "reference",
+          "native"
+        ],
+        [
+          "reference",
+          "run"
+        ]
+      ]
+    },
+    "CL001-02": {
+      "tests": [
+        "commandGrammar",
+        "usageDiagnostics",
+        "usageHasNoFilesystemEffects"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "usage-0",
+          "native"
+        ],
+        [
+          "usage-0",
+          "run"
+        ],
+        [
+          "usage-1",
+          "native"
+        ],
+        [
+          "usage-1",
+          "run"
+        ],
+        [
+          "usage-2",
+          "native"
+        ],
+        [
+          "usage-2",
+          "run"
+        ],
+        [
+          "usage-3",
+          "native"
+        ],
+        [
+          "usage-3",
+          "run"
+        ],
+        [
+          "usage-4",
+          "native"
+        ],
+        [
+          "usage-4",
+          "run"
+        ],
+        [
+          "usage-5",
+          "native"
+        ],
+        [
+          "usage-5",
+          "run"
+        ],
+        [
+          "usage-escaped",
+          "run"
+        ],
+        [
+          "usage-escaped",
+          "native"
+        ]
+      ]
+    },
+    "CL001-03": {
+      "tests": [
+        "pathGrammar"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "lexical-symlink-base",
+          "native"
+        ],
+        [
+          "lexical-symlink-base",
+          "run"
+        ],
+        [
+          "spaced-config",
+          "native"
+        ],
+        [
+          "spaced-config",
+          "run"
+        ]
+      ]
+    },
+    "CL001-04": {
+      "tests": [
+        "configGrammar"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "config-order-0",
+          "native"
+        ],
+        [
+          "config-order-0",
+          "run"
+        ],
+        [
+          "config-order-1",
+          "native"
+        ],
+        [
+          "config-order-1",
+          "run"
+        ]
+      ]
+    },
+    "CL001-05": {
+      "tests": [
+        "configGrammar"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "bad-config-0",
+          "native"
+        ],
+        [
+          "bad-config-0",
+          "run"
+        ],
+        [
+          "bad-config-1",
+          "native"
+        ],
+        [
+          "bad-config-1",
+          "run"
+        ],
+        [
+          "bad-config-2",
+          "native"
+        ],
+        [
+          "bad-config-2",
+          "run"
+        ],
+        [
+          "bad-config-3",
+          "native"
+        ],
+        [
+          "bad-config-3",
+          "run"
+        ],
+        [
+          "bad-config-4",
+          "native"
+        ],
+        [
+          "bad-config-4",
+          "run"
+        ],
+        [
+          "bad-config-5",
+          "native"
+        ],
+        [
+          "bad-config-5",
+          "run"
+        ],
+        [
+          "bad-config-6",
+          "native"
+        ],
+        [
+          "bad-config-6",
+          "run"
+        ],
+        [
+          "bad-config-7",
+          "native"
+        ],
+        [
+          "bad-config-7",
+          "run"
+        ],
+        [
+          "config-order-0",
+          "native"
+        ],
+        [
+          "config-order-0",
+          "run"
+        ],
+        [
+          "config-order-1",
+          "native"
+        ],
+        [
+          "config-order-1",
+          "run"
+        ]
+      ]
+    },
+    "CL001-06": {
+      "tests": [
+        "pathGrammar"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "bad-path-0",
+          "native"
+        ],
+        [
+          "bad-path-0",
+          "run"
+        ],
+        [
+          "bad-path-1",
+          "native"
+        ],
+        [
+          "bad-path-1",
+          "run"
+        ],
+        [
+          "bad-path-10",
+          "native"
+        ],
+        [
+          "bad-path-10",
+          "run"
+        ],
+        [
+          "bad-path-2",
+          "native"
+        ],
+        [
+          "bad-path-2",
+          "run"
+        ],
+        [
+          "bad-path-3",
+          "native"
+        ],
+        [
+          "bad-path-3",
+          "run"
+        ],
+        [
+          "bad-path-4",
+          "native"
+        ],
+        [
+          "bad-path-4",
+          "run"
+        ],
+        [
+          "bad-path-5",
+          "native"
+        ],
+        [
+          "bad-path-5",
+          "run"
+        ],
+        [
+          "bad-path-6",
+          "native"
+        ],
+        [
+          "bad-path-6",
+          "run"
+        ],
+        [
+          "bad-path-7",
+          "native"
+        ],
+        [
+          "bad-path-7",
+          "run"
+        ],
+        [
+          "bad-path-8",
+          "native"
+        ],
+        [
+          "bad-path-8",
+          "run"
+        ],
+        [
+          "bad-path-9",
+          "native"
+        ],
+        [
+          "bad-path-9",
+          "run"
+        ]
+      ]
+    },
+    "CL001-07": {
+      "tests": [
+        "configGrammar",
+        "pathGrammar"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "ancestor-input",
+          "native"
+        ],
+        [
+          "ancestor-input",
+          "run"
+        ],
+        [
+          "overlap-0",
+          "native"
+        ],
+        [
+          "overlap-0",
+          "run"
+        ],
+        [
+          "overlap-1",
+          "native"
+        ],
+        [
+          "overlap-1",
+          "run"
+        ],
+        [
+          "prefix-only",
+          "native"
+        ],
+        [
+          "prefix-only",
+          "run"
+        ]
+      ]
+    },
+    "CL001-08": {
+      "tests": [
+        "textEnvelope"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "config-envelope-0",
+          "native"
+        ],
+        [
+          "config-envelope-0",
+          "run"
+        ],
+        [
+          "config-envelope-1",
+          "native"
+        ],
+        [
+          "config-envelope-1",
+          "run"
+        ],
+        [
+          "config-envelope-2",
+          "native"
+        ],
+        [
+          "config-envelope-2",
+          "run"
+        ],
+        [
+          "config-envelope-3",
+          "native"
+        ],
+        [
+          "config-envelope-3",
+          "run"
+        ],
+        [
+          "crlf",
+          "native"
+        ],
+        [
+          "crlf",
+          "run"
+        ],
+        [
+          "page-envelope-0",
+          "native"
+        ],
+        [
+          "page-envelope-0",
+          "run"
+        ],
+        [
+          "page-envelope-1",
+          "native"
+        ],
+        [
+          "page-envelope-1",
+          "run"
+        ],
+        [
+          "page-envelope-2",
+          "native"
+        ],
+        [
+          "page-envelope-2",
+          "run"
+        ],
+        [
+          "page-envelope-3",
+          "native"
+        ],
+        [
+          "page-envelope-3",
+          "run"
+        ],
+        [
+          "page-envelope-4",
+          "native"
+        ],
+        [
+          "page-envelope-4",
+          "run"
+        ],
+        [
+          "reference",
+          "native"
+        ],
+        [
+          "reference",
+          "run"
+        ]
+      ]
+    },
+    "CL001-09": {
+      "tests": [
+        "pageGrammar"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "body-0",
+          "native"
+        ],
+        [
+          "body-0",
+          "run"
+        ],
+        [
+          "body-1",
+          "native"
+        ],
+        [
+          "body-1",
+          "run"
+        ],
+        [
+          "body-2",
+          "native"
+        ],
+        [
+          "body-2",
+          "run"
+        ],
+        [
+          "body-3",
+          "native"
+        ],
+        [
+          "body-3",
+          "run"
+        ],
+        [
+          "page-grammar-0",
+          "native"
+        ],
+        [
+          "page-grammar-0",
+          "run"
+        ],
+        [
+          "page-grammar-1",
+          "native"
+        ],
+        [
+          "page-grammar-1",
+          "run"
+        ],
+        [
+          "page-grammar-2",
+          "native"
+        ],
+        [
+          "page-grammar-2",
+          "run"
+        ],
+        [
+          "page-grammar-3",
+          "native"
+        ],
+        [
+          "page-grammar-3",
+          "run"
+        ],
+        [
+          "page-grammar-4",
+          "native"
+        ],
+        [
+          "page-grammar-4",
+          "run"
+        ]
+      ]
+    },
+    "CL001-10": {
+      "tests": [
+        "pageGrammar"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "body-0",
+          "native"
+        ],
+        [
+          "body-0",
+          "run"
+        ],
+        [
+          "body-1",
+          "native"
+        ],
+        [
+          "body-1",
+          "run"
+        ],
+        [
+          "body-2",
+          "native"
+        ],
+        [
+          "body-2",
+          "run"
+        ],
+        [
+          "body-3",
+          "native"
+        ],
+        [
+          "body-3",
+          "run"
+        ]
+      ]
+    },
+    "CL001-11": {
+      "tests": [
+        "selectedKindsOnly"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "entry-selection",
+          "native"
+        ],
+        [
+          "entry-selection",
+          "run"
+        ]
+      ]
+    },
+    "CL001-12": {
+      "tests": [
+        "pageGrammar"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "entry-selection",
+          "native"
+        ],
+        [
+          "entry-selection",
+          "run"
+        ],
+        [
+          "stem-.page",
+          "native"
+        ],
+        [
+          "stem-.page",
+          "run"
+        ],
+        [
+          "stem-About.page",
+          "native"
+        ],
+        [
+          "stem-About.page",
+          "run"
+        ],
+        [
+          "stem-a--b.page",
+          "native"
+        ],
+        [
+          "stem-a--b.page",
+          "run"
+        ],
+        [
+          "stem-a_b.page",
+          "native"
+        ],
+        [
+          "stem-a_b.page",
+          "run"
+        ]
+      ]
+    },
+    "CL001-13": {
+      "tests": [
+        "outputPlanning",
+        "referenceSite"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "empty",
+          "native"
+        ],
+        [
+          "empty",
+          "run"
+        ],
+        [
+          "one",
+          "native"
+        ],
+        [
+          "one",
+          "run"
+        ],
+        [
+          "reference",
+          "native"
+        ],
+        [
+          "reference",
+          "run"
+        ]
+      ]
+    },
+    "CL001-14": {
+      "tests": [
+        "inputIoIsPreserved"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "input-file",
+          "native"
+        ],
+        [
+          "input-file",
+          "run"
+        ],
+        [
+          "input-missing",
+          "native"
+        ],
+        [
+          "input-missing",
+          "run"
+        ],
+        [
+          "input-permission",
+          "native"
+        ],
+        [
+          "input-permission",
+          "run"
+        ]
+      ]
+    },
+    "CL001-15": {
+      "tests": [
+        "textConstruction",
+        "exactRendering"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "body-0",
+          "native"
+        ],
+        [
+          "body-0",
+          "run"
+        ],
+        [
+          "body-1",
+          "native"
+        ],
+        [
+          "body-1",
+          "run"
+        ],
+        [
+          "body-2",
+          "native"
+        ],
+        [
+          "body-2",
+          "run"
+        ],
+        [
+          "body-3",
+          "native"
+        ],
+        [
+          "body-3",
+          "run"
+        ],
+        [
+          "reference",
+          "native"
+        ],
+        [
+          "reference",
+          "run"
+        ]
+      ]
+    },
+    "CL001-16": {
+      "tests": [
+        "exactRendering",
+        "referenceSite"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "body-0",
+          "native"
+        ],
+        [
+          "body-0",
+          "run"
+        ],
+        [
+          "body-1",
+          "native"
+        ],
+        [
+          "body-1",
+          "run"
+        ],
+        [
+          "body-2",
+          "native"
+        ],
+        [
+          "body-2",
+          "run"
+        ],
+        [
+          "body-3",
+          "native"
+        ],
+        [
+          "body-3",
+          "run"
+        ],
+        [
+          "reference",
+          "native"
+        ],
+        [
+          "reference",
+          "run"
+        ]
+      ]
+    },
+    "CL001-17": {
+      "tests": [
+        "exactRendering"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "repeat-reference",
+          "native"
+        ],
+        [
+          "repeat-reference",
+          "run"
+        ]
+      ]
+    },
+    "CL001-18": {
+      "tests": [
+        "planOrderAndBytes"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "reference",
+          "native"
+        ],
+        [
+          "reference",
+          "run"
+        ]
+      ]
+    },
+    "CL001-19": {
+      "tests": [
+        "phaseClassification",
+        "referenceSite"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "existing-empty",
+          "native"
+        ],
+        [
+          "existing-empty",
+          "run"
+        ],
+        [
+          "reference",
+          "native"
+        ],
+        [
+          "reference",
+          "run"
+        ],
+        [
+          "target-missing-counterpart",
+          "native"
+        ],
+        [
+          "target-missing-counterpart",
+          "run"
+        ]
+      ]
+    },
+    "CL001-20": {
+      "tests": [
+        "phaseClassification"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "nonempty-directory",
+          "native"
+        ],
+        [
+          "nonempty-directory",
+          "run"
+        ],
+        [
+          "nonempty-dotfile",
+          "native"
+        ],
+        [
+          "nonempty-dotfile",
+          "run"
+        ],
+        [
+          "nonempty-file",
+          "native"
+        ],
+        [
+          "nonempty-file",
+          "run"
+        ],
+        [
+          "nonempty-generated",
+          "native"
+        ],
+        [
+          "nonempty-generated",
+          "run"
+        ],
+        [
+          "nonempty-symlink",
+          "native"
+        ],
+        [
+          "nonempty-symlink",
+          "run"
+        ]
+      ]
+    },
+    "CL001-21": {
+      "tests": [
+        "createFailureStopsWrites"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "file-output-parent",
+          "native"
+        ],
+        [
+          "file-output-parent",
+          "run"
+        ],
+        [
+          "missing-output-parent",
+          "native"
+        ],
+        [
+          "missing-output-parent",
+          "run"
+        ],
+        [
+          "mkdir-permission",
+          "native"
+        ],
+        [
+          "mkdir-permission",
+          "run"
+        ],
+        [
+          "output-file",
+          "native"
+        ],
+        [
+          "output-file",
+          "run"
+        ]
+      ]
+    },
+    "CL001-22": {
+      "tests": [
+        "laterPageFailureStopsPreflight"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "later-invalid",
+          "native"
+        ],
+        [
+          "later-invalid",
+          "run"
+        ]
+      ]
+    },
+    "CL001-23": {
+      "tests": [
+        "publishStopsAtFirstFailure"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "write-body",
+          "native"
+        ],
+        [
+          "write-body",
+          "run"
+        ],
+        [
+          "write-close",
+          "native"
+        ],
+        [
+          "write-close",
+          "run"
+        ]
+      ]
+    },
+    "CL001-24": {
+      "tests": [
+        "firstPageFailureStopsPreflight",
+        "referenceSite",
+        "usageDiagnostics",
+        "usageHasNoFilesystemEffects"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "bad-config-0",
+          "native"
+        ],
+        [
+          "bad-config-0",
+          "run"
+        ],
+        [
+          "bad-config-1",
+          "native"
+        ],
+        [
+          "bad-config-1",
+          "run"
+        ],
+        [
+          "bad-config-2",
+          "native"
+        ],
+        [
+          "bad-config-2",
+          "run"
+        ],
+        [
+          "bad-config-3",
+          "native"
+        ],
+        [
+          "bad-config-3",
+          "run"
+        ],
+        [
+          "bad-config-4",
+          "native"
+        ],
+        [
+          "bad-config-4",
+          "run"
+        ],
+        [
+          "bad-config-5",
+          "native"
+        ],
+        [
+          "bad-config-5",
+          "run"
+        ],
+        [
+          "bad-config-6",
+          "native"
+        ],
+        [
+          "bad-config-6",
+          "run"
+        ],
+        [
+          "bad-config-7",
+          "native"
+        ],
+        [
+          "bad-config-7",
+          "run"
+        ],
+        [
+          "nonempty-directory",
+          "native"
+        ],
+        [
+          "nonempty-directory",
+          "run"
+        ],
+        [
+          "nonempty-dotfile",
+          "native"
+        ],
+        [
+          "nonempty-dotfile",
+          "run"
+        ],
+        [
+          "nonempty-file",
+          "native"
+        ],
+        [
+          "nonempty-file",
+          "run"
+        ],
+        [
+          "nonempty-generated",
+          "native"
+        ],
+        [
+          "nonempty-generated",
+          "run"
+        ],
+        [
+          "nonempty-symlink",
+          "native"
+        ],
+        [
+          "nonempty-symlink",
+          "run"
+        ],
+        [
+          "reference",
+          "native"
+        ],
+        [
+          "reference",
+          "run"
+        ],
+        [
+          "usage-0",
+          "native"
+        ],
+        [
+          "usage-0",
+          "run"
+        ],
+        [
+          "usage-1",
+          "native"
+        ],
+        [
+          "usage-1",
+          "run"
+        ],
+        [
+          "usage-2",
+          "native"
+        ],
+        [
+          "usage-2",
+          "run"
+        ],
+        [
+          "usage-3",
+          "native"
+        ],
+        [
+          "usage-3",
+          "run"
+        ],
+        [
+          "usage-4",
+          "native"
+        ],
+        [
+          "usage-4",
+          "run"
+        ],
+        [
+          "usage-5",
+          "native"
+        ],
+        [
+          "usage-5",
+          "run"
+        ],
+        [
+          "usage-escaped",
+          "run"
+        ],
+        [
+          "usage-escaped",
+          "native"
+        ]
+      ]
+    },
+    "CL001-25": {
+      "tests": [
+        "firstPageFailureStopsPreflight",
+        "textConstruction",
+        "usageDiagnostics",
+        "usageHasNoFilesystemEffects"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "control-subject",
+          "native"
+        ],
+        [
+          "control-subject",
+          "run"
+        ],
+        [
+          "stderr",
+          "native"
+        ],
+        [
+          "stderr",
+          "run"
+        ],
+        [
+          "usage-escaped",
+          "run"
+        ],
+        [
+          "usage-escaped",
+          "native"
+        ]
+      ]
+    },
+    "CL001-26": {
+      "tests": [
+        "firstPageFailureStopsPreflight"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "config-envelope-0",
+          "native"
+        ],
+        [
+          "config-envelope-0",
+          "run"
+        ],
+        [
+          "config-envelope-1",
+          "native"
+        ],
+        [
+          "config-envelope-1",
+          "run"
+        ],
+        [
+          "config-envelope-2",
+          "native"
+        ],
+        [
+          "config-envelope-2",
+          "run"
+        ],
+        [
+          "config-envelope-3",
+          "native"
+        ],
+        [
+          "config-envelope-3",
+          "run"
+        ],
+        [
+          "first-invalid",
+          "native"
+        ],
+        [
+          "first-invalid",
+          "run"
+        ],
+        [
+          "later-invalid",
+          "native"
+        ],
+        [
+          "later-invalid",
+          "run"
+        ],
+        [
+          "page-envelope-0",
+          "native"
+        ],
+        [
+          "page-envelope-0",
+          "run"
+        ],
+        [
+          "page-envelope-1",
+          "native"
+        ],
+        [
+          "page-envelope-1",
+          "run"
+        ],
+        [
+          "page-envelope-2",
+          "native"
+        ],
+        [
+          "page-envelope-2",
+          "run"
+        ],
+        [
+          "page-envelope-3",
+          "native"
+        ],
+        [
+          "page-envelope-3",
+          "run"
+        ],
+        [
+          "page-envelope-4",
+          "native"
+        ],
+        [
+          "page-envelope-4",
+          "run"
+        ]
+      ]
+    },
+    "CL001-27": {
+      "tests": [
+        "referenceSite"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "reference",
+          "native"
+        ],
+        [
+          "reference",
+          "run"
+        ]
+      ]
+    },
+    "CL001-28": {
+      "tests": [
+        "phaseClassification",
+        "usageHasNoFilesystemEffects",
+        "firstPageFailureStopsPreflight",
+        "publishStopsAtFirstFailure",
+        "phaseGuardThroughPrepare",
+        "inputIoIsPreserved",
+        "createFailureStopsWrites",
+        "selectedKindsOnly",
+        "laterPageFailureStopsPreflight",
+        "referenceSite",
+        "commandGrammar",
+        "configGrammar",
+        "pathGrammar",
+        "pageGrammar",
+        "usageDiagnostics",
+        "exactRendering",
+        "outputPlanning",
+        "planOrderAndBytes",
+        "textEnvelope",
+        "textConstruction"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "mognitio-tests",
+          "mgn-test"
+        ]
+      ]
+    },
+    "CL001-29": {
+      "tests": [],
+      "m_scope": "not-applicable",
+      "cases": [
+        [
+          "standalone",
+          "isolated-native"
+        ]
+      ]
+    },
+    "CL001-30": {
+      "tests": [
+        "phaseClassification",
+        "usageHasNoFilesystemEffects",
+        "firstPageFailureStopsPreflight",
+        "publishStopsAtFirstFailure",
+        "phaseGuardThroughPrepare",
+        "inputIoIsPreserved",
+        "createFailureStopsWrites",
+        "selectedKindsOnly",
+        "laterPageFailureStopsPreflight",
+        "referenceSite",
+        "commandGrammar",
+        "configGrammar",
+        "pathGrammar",
+        "pageGrammar",
+        "usageDiagnostics",
+        "exactRendering",
+        "outputPlanning",
+        "planOrderAndBytes",
+        "textEnvelope",
+        "textConstruction"
+      ],
+      "m_scope": "required",
+      "cases": []
+    },
+    "CL001-31": {
+      "tests": [
+        "selectedKindsOnly"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "output-invalid-name",
+          "native"
+        ],
+        [
+          "output-invalid-name",
+          "run"
+        ]
+      ]
+    },
+    "CL001-32": {
+      "tests": [
+        "phaseClassification",
+        "phaseGuardThroughPrepare"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "output-body",
+          "native"
+        ],
+        [
+          "output-body",
+          "run"
+        ],
+        [
+          "output-cleanup",
+          "native"
+        ],
+        [
+          "output-cleanup",
+          "run"
+        ],
+        [
+          "output-invalid-name",
+          "native"
+        ],
+        [
+          "output-invalid-name",
+          "run"
+        ],
+        [
+          "output-metadata",
+          "native"
+        ],
+        [
+          "output-metadata",
+          "run"
+        ],
+        [
+          "output-permission",
+          "native"
+        ],
+        [
+          "output-permission",
+          "run"
+        ]
+      ]
+    },
+    "CL001-33": {
+      "tests": [
+        "referenceSite"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "after-interruption",
+          "native"
+        ],
+        [
+          "after-interruption",
+          "run"
+        ],
+        [
+          "external-interruption",
+          "native"
+        ],
+        [
+          "repeat-reference",
+          "native"
+        ],
+        [
+          "repeat-reference",
+          "run"
+        ]
+      ]
+    },
+    "CL001-34": {
+      "tests": [],
+      "m_scope": "not-applicable",
+      "cases": []
+    },
+    "CL001-35": {
+      "tests": [],
+      "m_scope": "not-applicable",
+      "cases": [
+        [
+          "invalid-utf8-argv",
+          "native"
+        ],
+        [
+          "invalid-utf8-argv",
+          "run"
+        ]
+      ]
+    },
+    "CL001-36": {
+      "tests": [
+        "phaseClassification"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "input-file",
+          "native"
+        ],
+        [
+          "input-file",
+          "run"
+        ],
+        [
+          "input-missing",
+          "native"
+        ],
+        [
+          "input-missing",
+          "run"
+        ],
+        [
+          "input-permission",
+          "native"
+        ],
+        [
+          "input-permission",
+          "run"
+        ],
+        [
+          "output-body",
+          "native"
+        ],
+        [
+          "output-body",
+          "run"
+        ],
+        [
+          "output-cleanup",
+          "native"
+        ],
+        [
+          "output-cleanup",
+          "run"
+        ],
+        [
+          "output-invalid-name",
+          "native"
+        ],
+        [
+          "output-invalid-name",
+          "run"
+        ],
+        [
+          "output-metadata",
+          "native"
+        ],
+        [
+          "output-metadata",
+          "run"
+        ],
+        [
+          "output-permission",
+          "native"
+        ],
+        [
+          "output-permission",
+          "run"
+        ],
+        [
+          "target-missing-counterpart",
+          "native"
+        ],
+        [
+          "target-missing-counterpart",
+          "run"
+        ]
+      ]
+    },
+    "CL001-37": {
+      "tests": [
+        "phaseClassification",
+        "phaseGuardThroughPrepare"
+      ],
+      "m_scope": "required",
+      "cases": [
+        [
+          "output-body",
+          "native"
+        ],
+        [
+          "output-body",
+          "run"
+        ],
+        [
+          "output-cleanup",
+          "native"
+        ],
+        [
+          "output-cleanup",
+          "run"
+        ],
+        [
+          "output-metadata",
+          "native"
+        ],
+        [
+          "output-metadata",
+          "run"
+        ],
+        [
+          "target-missing-counterpart",
+          "native"
+        ],
+        [
+          "target-missing-counterpart",
+          "run"
+        ]
+      ]
+    }
+  },
+  "design": {
+    "DL001-01": [
+      "textEnvelope"
+    ],
+    "DL001-02": [
+      "textConstruction"
+    ],
+    "DL001-03": [
+      "commandGrammar",
+      "usageDiagnostics",
+      "configGrammar",
+      "pathGrammar"
+    ],
+    "DL001-04": [
+      "pageGrammar"
+    ],
+    "DL001-05": [
+      "textConstruction",
+      "exactRendering"
+    ],
+    "DL001-06": [
+      "selectedKindsOnly",
+      "firstPageFailureStopsPreflight",
+      "laterPageFailureStopsPreflight"
+    ],
+    "DL001-07": [
+      "outputPlanning",
+      "planOrderAndBytes"
+    ],
+    "DL001-08": [
+      "phaseClassification",
+      "phaseGuardThroughPrepare",
+      "inputIoIsPreserved"
+    ],
+    "DL001-09": [
+      "usageHasNoFilesystemEffects",
+      "firstPageFailureStopsPreflight",
+      "laterPageFailureStopsPreflight",
+      "publishStopsAtFirstFailure",
+      "createFailureStopsWrites"
+    ],
+    "DL001-10": [
+      "usageDiagnostics",
+      "textConstruction",
+      "usageHasNoFilesystemEffects"
+    ],
+    "DL001-11": [
+      "referenceSite"
+    ],
+    "DL001-12": []
+  },
+  "case_exits": {
+    "reference|run": 0,
+    "reference|native": 0,
+    "repeat-reference|run": 0,
+    "repeat-reference|native": 0,
+    "usage-0|run": 2,
+    "usage-0|native": 2,
+    "usage-1|run": 2,
+    "usage-1|native": 2,
+    "usage-2|run": 2,
+    "usage-2|native": 2,
+    "usage-3|run": 2,
+    "usage-3|native": 2,
+    "usage-4|run": 2,
+    "usage-4|native": 2,
+    "usage-5|run": 2,
+    "usage-5|native": 2,
+    "config-order-0|run": 0,
+    "config-order-0|native": 0,
+    "config-order-1|run": 0,
+    "config-order-1|native": 0,
+    "bad-config-0|run": 1,
+    "bad-config-0|native": 1,
+    "bad-config-1|run": 1,
+    "bad-config-1|native": 1,
+    "bad-config-2|run": 1,
+    "bad-config-2|native": 1,
+    "bad-config-3|run": 1,
+    "bad-config-3|native": 1,
+    "bad-config-4|run": 1,
+    "bad-config-4|native": 1,
+    "bad-config-5|run": 1,
+    "bad-config-5|native": 1,
+    "bad-config-6|run": 1,
+    "bad-config-6|native": 1,
+    "bad-config-7|run": 1,
+    "bad-config-7|native": 1,
+    "bad-path-0|run": 1,
+    "bad-path-0|native": 1,
+    "bad-path-1|run": 1,
+    "bad-path-1|native": 1,
+    "bad-path-2|run": 1,
+    "bad-path-2|native": 1,
+    "bad-path-3|run": 1,
+    "bad-path-3|native": 1,
+    "bad-path-4|run": 1,
+    "bad-path-4|native": 1,
+    "bad-path-5|run": 1,
+    "bad-path-5|native": 1,
+    "bad-path-6|run": 1,
+    "bad-path-6|native": 1,
+    "bad-path-7|run": 1,
+    "bad-path-7|native": 1,
+    "bad-path-8|run": 1,
+    "bad-path-8|native": 1,
+    "bad-path-9|run": 1,
+    "bad-path-9|native": 1,
+    "bad-path-10|run": 1,
+    "bad-path-10|native": 1,
+    "overlap-0|run": 1,
+    "overlap-0|native": 1,
+    "overlap-1|run": 1,
+    "overlap-1|native": 1,
+    "ancestor-input|run": 1,
+    "ancestor-input|native": 1,
+    "prefix-only|run": 0,
+    "prefix-only|native": 0,
+    "spaced-config|run": 0,
+    "spaced-config|native": 0,
+    "lexical-symlink-base|run": 0,
+    "lexical-symlink-base|native": 0,
+    "crlf|run": 0,
+    "crlf|native": 0,
+    "config-envelope-0|run": 1,
+    "config-envelope-0|native": 1,
+    "config-envelope-1|run": 1,
+    "config-envelope-1|native": 1,
+    "config-envelope-2|run": 1,
+    "config-envelope-2|native": 1,
+    "config-envelope-3|run": 1,
+    "config-envelope-3|native": 1,
+    "page-envelope-0|run": 1,
+    "page-envelope-0|native": 1,
+    "page-envelope-1|run": 1,
+    "page-envelope-1|native": 1,
+    "page-envelope-2|run": 1,
+    "page-envelope-2|native": 1,
+    "page-envelope-3|run": 1,
+    "page-envelope-3|native": 1,
+    "page-envelope-4|run": 1,
+    "page-envelope-4|native": 1,
+    "page-grammar-0|run": 1,
+    "page-grammar-0|native": 1,
+    "page-grammar-1|run": 1,
+    "page-grammar-1|native": 1,
+    "page-grammar-2|run": 1,
+    "page-grammar-2|native": 1,
+    "page-grammar-3|run": 1,
+    "page-grammar-3|native": 1,
+    "page-grammar-4|run": 1,
+    "page-grammar-4|native": 1,
+    "body-0|run": 0,
+    "body-0|native": 0,
+    "body-1|run": 0,
+    "body-1|native": 0,
+    "body-2|run": 0,
+    "body-2|native": 0,
+    "body-3|run": 0,
+    "body-3|native": 0,
+    "entry-selection|run": 0,
+    "entry-selection|native": 0,
+    "stem-.page|run": 1,
+    "stem-.page|native": 1,
+    "stem-About.page|run": 1,
+    "stem-About.page|native": 1,
+    "stem-a_b.page|run": 1,
+    "stem-a_b.page|native": 1,
+    "stem-a--b.page|run": 1,
+    "stem-a--b.page|native": 1,
+    "empty|run": 1,
+    "empty|native": 1,
+    "one|run": 0,
+    "one|native": 0,
+    "input-missing|run": 1,
+    "input-missing|native": 1,
+    "input-file|run": 1,
+    "input-file|native": 1,
+    "input-permission|run": 1,
+    "input-permission|native": 1,
+    "existing-empty|run": 0,
+    "existing-empty|native": 0,
+    "nonempty-file|run": 1,
+    "nonempty-file|native": 1,
+    "nonempty-dotfile|run": 1,
+    "nonempty-dotfile|native": 1,
+    "nonempty-directory|run": 1,
+    "nonempty-directory|native": 1,
+    "nonempty-symlink|run": 1,
+    "nonempty-symlink|native": 1,
+    "nonempty-generated|run": 1,
+    "nonempty-generated|native": 1,
+    "missing-output-parent|run": 1,
+    "missing-output-parent|native": 1,
+    "file-output-parent|run": 1,
+    "file-output-parent|native": 1,
+    "output-file|run": 1,
+    "output-file|native": 1,
+    "mkdir-permission|run": 1,
+    "mkdir-permission|native": 1,
+    "later-invalid|run": 1,
+    "later-invalid|native": 1,
+    "first-invalid|run": 1,
+    "first-invalid|native": 1,
+    "output-invalid-name|run": 1,
+    "output-invalid-name|native": 1,
+    "output-permission|run": 1,
+    "output-permission|native": 1,
+    "control-subject|run": 1,
+    "control-subject|native": 1,
+    "mognitio-tests|mgn-test": 0,
+    "invalid-utf8-argv|run": 2,
+    "invalid-utf8-argv|native": 2,
+    "standalone|isolated-native": 0,
+    "external-interruption|native": -9,
+    "after-interruption|run": 0,
+    "after-interruption|native": 0,
+    "output-body|run": 1,
+    "output-body|native": 1,
+    "output-cleanup|run": 1,
+    "output-cleanup|native": 1,
+    "output-metadata|run": 1,
+    "output-metadata|native": 1,
+    "write-body|run": 1,
+    "write-body|native": 1,
+    "write-close|run": 1,
+    "write-close|native": 1,
+    "stderr|run": 1,
+    "stderr|native": 1,
+    "target-missing-counterpart|run": 0,
+    "target-missing-counterpart|native": 0,
+    "text-measurements|native-measurement": 0,
+    "usage-escaped|run": 2,
+    "usage-escaped|native": 2
+  }
+}

@@ -1,0 +1,30 @@
+namespace Levi\Core;
+use Std\Io\{IoError, joinPath};
+use Levi\Core\{SiteConfig, SitePaths, asciiAlnum, cut};
+public let validRelative: Function(String): Bool = function(path: String): Bool {
+    var start: Bool = true;
+    loop over (path->scalars() as scalar: String) {
+        branch when {
+            start => { branch when { asciiAlnum(scalar) => { start = false; }, else => { return false; } }; },
+            scalar == "/" => { start = true; },
+            asciiAlnum(scalar) || scalar == "_" || scalar == "-" => unit,
+            else => { return false; },
+        };
+    };
+    !start
+};
+public let isAncestor: Function(String, String): Bool = function(parent: String, child: String): Bool {
+    let prefix: String = parent + "/";
+    branch when { child->length() < prefix->length() => false,
+        else => cut(child, 0, prefix->length()) == prefix }
+};
+public let resolvePaths: Function(String, SiteConfig): Result<SitePaths, IoError> = function(path: String, config: SiteConfig): Result<SitePaths, IoError> {
+    var lastSlash: Int = -1; var index: Int = 0;
+    loop over (path->scalars() as scalar: String) {
+        branch when { scalar == "/" => { lastSlash = index; }, else => unit }; index = index + 1;
+    };
+    let base: String = branch when { lastSlash < 0 => ".", lastSlash == 0 => "/", else => cut(path, 0, lastSlash) };
+    let inputRoot: String = try joinPath(base, config->inputRelative);
+    let outputRoot: String = try joinPath(base, config->outputRelative);
+    Result<SitePaths, IoError>::Ok(SitePaths { configPath: path, base: base, inputRoot: inputRoot, outputRoot: outputRoot })
+};

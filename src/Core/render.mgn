@@ -1,0 +1,18 @@
+namespace Levi\Core;
+use Levi\Core\{Page, assembleFragments};
+public let escapeHtml: Function(String): String = function(text: String): String {
+    var parts: List<String> = List<String>[];
+    loop over (text->scalars() as scalar: String) {
+        parts = parts->append(branch when {
+            scalar == "&" => "&amp;", scalar == "<" => "&lt;", scalar == ">" => "&gt;",
+            scalar == "\"" => "&quot;", scalar == "'" => "&#39;", else => scalar,
+        });
+    };
+    assembleFragments(parts)
+};
+public let renderPage: Function(String, Page): String = function(siteTitle: String, page: Page): String {
+    let title: String = escapeHtml(page->title);
+    List<String>["<!doctype html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<title>", title,
+        " | ", escapeHtml(siteTitle), "</title>\n</head>\n<body>\n<h1>", title,
+        "</h1>\n<pre>\n", escapeHtml(page->body), "</pre>\n</body>\n</html>\n"]->join("")
+};

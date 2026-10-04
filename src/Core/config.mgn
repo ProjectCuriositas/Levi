@@ -1,0 +1,40 @@
+namespace Levi\Core;
+use Levi\Core\{SiteConfig, FormatFailure, splitLines, validTitle, validRelative, isAncestor};
+type Slot = sum { Missing; Present(String); };
+let slotValue: Function(Slot): String = function(slot: Slot): String {
+    branch on slot { Slot::Present(value: String) => value, Slot::Missing => panic { "validated config slot" } }
+};
+let missing: Function(Slot): Bool = function(slot: Slot): Bool {
+    branch on slot { Slot::Missing => true, Slot::Present => false }
+};
+let failConfig: Function(String, String): Result<SiteConfig, FormatFailure> = function(reason: String, subject: String): Result<SiteConfig, FormatFailure> {
+    Result<SiteConfig, FormatFailure>::Err(FormatFailure { reason: reason, subject: subject })
+};
+public let parseConfig: Function(String): Result<SiteConfig, FormatFailure> = function(text: String): Result<SiteConfig, FormatFailure> {
+    var title: Slot = Slot::Missing; var input: Slot = Slot::Missing; var output: Slot = Slot::Missing;
+    loop over (splitLines(text) as line: String) {
+        branch when { line == "" => { continue; }, else => unit };
+        var found: Bool = false; var keyParts: List<String> = List<String>[]; var valueParts: List<String> = List<String>[];
+        loop over (line->scalars() as scalar: String) {
+            branch when {
+                found => { valueParts = valueParts->append(scalar); },
+                scalar == "=" => { found = true; },
+                else => { keyParts = keyParts->append(scalar); },
+            };
+        };
+        branch when { !found => { return failConfig("expected key=value", "config"); }, else => unit };
+        let key: String = keyParts->join(""); let value: String = valueParts->join("");
+        branch when {
+            key == "title" => { branch when { !missing(title) => { return failConfig("duplicate key", key); }, else => unit }; title = Slot::Present(value); },
+            key == "input" => { branch when { !missing(input) => { return failConfig("duplicate key", key); }, else => unit }; input = Slot::Present(value); },
+            key == "output" => { branch when { !missing(output) => { return failConfig("duplicate key", key); }, else => unit }; output = Slot::Present(value); },
+            else => { return failConfig("unknown key", key); },
+        };
+    };
+    branch when { missing(title) || missing(input) || missing(output) => { return failConfig("missing key", "config"); }, else => unit };
+    let siteTitle: String = slotValue(title); let inputPath: String = slotValue(input); let outputPath: String = slotValue(output);
+    branch when { !validTitle(siteTitle) => { return failConfig("invalid title", "title"); }, else => unit };
+    branch when { !validRelative(inputPath) || !validRelative(outputPath) => { return failConfig("invalid relative path", "input/output"); }, else => unit };
+    branch when { inputPath == outputPath || isAncestor(inputPath, outputPath) || isAncestor(outputPath, inputPath) => { return failConfig("overlapping paths", "input/output"); }, else => unit };
+    Result<SiteConfig, FormatFailure>::Ok(SiteConfig { title: siteTitle, inputRelative: inputPath, outputRelative: outputPath })
+};
