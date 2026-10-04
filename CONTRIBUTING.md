@@ -27,6 +27,7 @@ from the repository root with a sibling Mognitio checkout:
 
 ```sh
 python3 tools/verify.py --compiler ../Mognitio --evidence evidence/contribution-check
+python3 tools/regression.py --compiler ../Mognitio --evidence evidence/contribution-check
 git diff --check
 ```
 

@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Bounded investigation of native scalar scanning cost, separate from acceptance."""
 import argparse, json, shutil, subprocess
-from verify import Session, ROOT, digest
+from verify import Session, digest
 
 def main():
+    if not __debug__: raise SystemExit('Do not disable verification assertions')
     p=argparse.ArgumentParser();p.add_argument('--compiler',type=__import__('pathlib').Path,required=True);p.add_argument('--evidence',type=__import__('pathlib').Path,required=True);p.add_argument('--timeout',type=float,default=10);args=p.parse_args()
     s=Session(args.compiler,args.evidence)
     try:
         s.slot.mkdir();project=s.root/'stress';(project/'src/Core').mkdir(parents=True)
         (project/'mognitio.toml').write_text('[project]\nname="levi"\nroot_namespace="Levi"\n')
-        for name in ['model.mgn','text.mgn']: shutil.copy2(ROOT/'src/Core'/name,project/'src/Core'/name)
+        for name in ['model.mgn','text.mgn']: shutil.copy2(s.project/'src/Core'/name,project/'src/Core'/name)
         source=r'''namespace Levi;
 use Std\Io\{readTextFile,IoError};
 use Levi\Core\{validTitle};

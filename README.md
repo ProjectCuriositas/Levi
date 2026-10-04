@@ -106,3 +106,18 @@ Release publication is a separate step.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for public contribution conventions
 and validation requirements.
+
+### Observer regression checks
+
+After a full verification run, validate the observer's negative controls:
+
+```sh
+python3 tools/regression.py --compiler ../Mognitio --evidence evidence/contribution-check
+```
+
+Use the evidence directory from that full run, once. The checks reject missing,
+duplicate, or failed test identities and missing external or measurement
+results. They also execute real empty and incomplete test suites in temporary
+source copies. Keep `tools/expectations.json` aligned with reviewed test changes;
+never derive the required test set from the run being accepted. Do not use
+`python -O` or `PYTHONOPTIMIZE` for verification.

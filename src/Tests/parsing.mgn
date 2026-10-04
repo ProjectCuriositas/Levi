@@ -1,7 +1,7 @@
 namespace Levi\Tests;
 use Std\Io\{IoError};
 use Levi\Core\{BuildCommand, BuildError, FormatFailure, SiteConfig, SitePaths, Page,
-    parseCommand, parseConfig, validRelative, isAncestor, resolvePaths, parsePage, pageName, validStem};
+    formatDiagnostic, quoteSubject, parseCommand, parseConfig, validRelative, isAncestor, resolvePaths, parsePage, pageName, validStem};
 @test let commandGrammar: Function(): Unit = function(): Unit {
     loop over (List<List<String>>[List<String>[], List<String>["build"], List<String>["help", "x"], List<String>["build", ""], List<String>["build", "x", "y"]] as args: List<String>) {
         assert branch on parseCommand(args) { Result<BuildCommand, BuildError>::Ok => false, Result<BuildCommand, BuildError>::Err => true };
@@ -34,5 +34,22 @@ use Levi\Core\{BuildCommand, BuildError, FormatFailure, SiteConfig, SitePaths, P
     assert branch on parsePage("a.page", "c/a.page", "a", "title=T\n\n\n\ttitle='x'\n") { Result<Page, FormatFailure>::Ok(value: Page) => value->body == "\n\ttitle='x'\n", Result<Page, FormatFailure>::Err => false };
     loop over (List<String>["", "title=\n\n", "title= \n\n", "title=T", "title=T\n", "title=T\n \nbody", "Title=T\n\n", "title=T\t\n\n"] as invalid: String) {
         assert branch on parsePage("a.page", "c/a.page", "a", invalid) { Result<Page, FormatFailure>::Ok => false, Result<Page, FormatFailure>::Err => true };
+    };
+};
+
+@test let usageDiagnostics: Function(): Unit = function(): Unit {
+    loop over (List<String>["help", "bad\n\"\\\u{2028}"] as command: String) {
+        assert branch on parseCommand(List<String>[command, "site.cfg"]) {
+            Result<BuildCommand, BuildError>::Ok => false,
+            Result<BuildCommand, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == "levi: usage: unknown command " + quoteSubject(command) + "; expected levi build <config-path>\n"
+        };
+    };
+    assert branch on parseCommand(List<String>["build", ""]) {
+        Result<BuildCommand, BuildError>::Ok => false,
+        Result<BuildCommand, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == "levi: usage: empty config path \"\"; expected levi build <config-path>\n"
+    };
+    assert branch on parseCommand(List<String>[]) {
+        Result<BuildCommand, BuildError>::Ok => false,
+        Result<BuildCommand, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == "levi: usage: invalid argument count \"arguments\"; expected levi build <config-path>\n"
     };
 };
