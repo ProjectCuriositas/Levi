@@ -1,0 +1,157 @@
+namespace Levi\Tests;
+use Std\Io\{IoError, IoErrorKind, IoErrorPhase, IoOperation, DirectoryEntry, DirectoryEntryKind};
+use Levi\Core\{classifyOutput, OutputState, BuildError, formatDiagnostic, BuildCommand, PreparedBuild, OutputPlan, OutputItem};
+use Levi\App\{IoFunctions, prepareBuild, publishBuild, execute};
+public let failure: Function(IoOperation, IoErrorPhase, IoErrorKind, String): IoError = function(op: IoOperation, phase: IoErrorPhase, kind: IoErrorKind, subject: String): IoError {
+    IoError { operation: op, phase: phase, kind: kind, subject: subject }
+};
+@test let phaseClassification: Function(): Unit = function(): Unit {
+    let target: IoError = failure(IoOperation::ReadDirectory, IoErrorPhase::Target, IoErrorKind::NotFound, "p");
+    assert branch on classifyOutput("p", Result<List<DirectoryEntry>, IoError>::Err(target)) {
+        Result<OutputState, BuildError>::Ok(value: OutputState) => branch on value { OutputState::CreateRequired => true, OutputState::ExistingEmpty => false },
+        Result<OutputState, BuildError>::Err => false,
+    };
+    loop over (List<IoError>[
+        failure(IoOperation::ReadDirectory, IoErrorPhase::Body, IoErrorKind::NotFound, "p"),
+        failure(IoOperation::ReadDirectory, IoErrorPhase::Cleanup, IoErrorKind::NotFound, "p"),
+        failure(IoOperation::ReadDirectory, IoErrorPhase::Input, IoErrorKind::NotFound, "p"),
+        failure(IoOperation::ReadDirectory, IoErrorPhase::Target, IoErrorKind::NotFound, "p/child"),
+        failure(IoOperation::ReadTextFile, IoErrorPhase::Target, IoErrorKind::NotFound, "p"),
+        failure(IoOperation::ReadDirectory, IoErrorPhase::Target, IoErrorKind::PermissionDenied, "p")
+    ] as error: IoError) {
+        assert branch on classifyOutput("p", Result<List<DirectoryEntry>, IoError>::Err(error)) {
+            Result<OutputState, BuildError>::Ok => false,
+            Result<OutputState, BuildError>::Err(value: BuildError) => formatDiagnostic(value) == formatDiagnostic(BuildError::Io(error)),
+        };
+    };
+    assert branch on classifyOutput("p", Result<List<DirectoryEntry>, IoError>::Ok(List<DirectoryEntry>[])) {
+        Result<OutputState, BuildError>::Ok(value: OutputState) => branch on value { OutputState::ExistingEmpty => true, OutputState::CreateRequired => false }, Result<OutputState, BuildError>::Err => false,
+    };
+    assert branch on classifyOutput("p", Result<List<DirectoryEntry>, IoError>::Ok(List<DirectoryEntry>[DirectoryEntry { name: ".keep", kind: DirectoryEntryKind::File }])) {
+        Result<OutputState, BuildError>::Ok => false, Result<OutputState, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == "levi: output-not-empty: \"p\"\n",
+    };
+};
+public let forbiddenRead: Function(String): Result<String, IoError> = function(path: String): Result<String, IoError> { panic { "unexpected read" } };
+public let forbiddenDirectory: Function(String): Result<List<DirectoryEntry>, IoError> = function(path: String): Result<List<DirectoryEntry>, IoError> { panic { "unexpected directory" } };
+public let forbiddenCreate: Function(String): Result<Unit, IoError> = function(path: String): Result<Unit, IoError> { panic { "unexpected mkdir" } };
+public let forbiddenWrite: Function(String, String): Result<Unit, IoError> = function(path: String, text: String): Result<Unit, IoError> { panic { "unexpected write" } };
+public let failedStderr: Function(String): Result<Unit, IoError> = function(text: String): Result<Unit, IoError> {
+    Result<Unit, IoError>::Err(failure(IoOperation::WriteStderr, IoErrorPhase::Body, IoErrorKind::BrokenPipe, "stderr"))
+};
+@test let usageHasNoFilesystemEffects: Function(): Unit = function(): Unit {
+    let io: IoFunctions = IoFunctions { readTextFile: forbiddenRead, readDirectory: forbiddenDirectory, createDirectory: forbiddenCreate, writeTextFile: forbiddenWrite, writeStderr: failedStderr };
+    assert execute(List<String>[], io) == 2;
+    assert execute(List<String>["build", ""], io) == 2;
+};
+@test let firstPageFailureStopsPreflight: Function(): Unit = function(): Unit {
+    let io: IoFunctions = IoFunctions {
+        readTextFile: function(path: String): Result<String, IoError> {
+            branch when { path == "site" => Result<String, IoError>::Ok("title=S\ninput=c\noutput=p"),
+                path == "./c/a.page" => Result<String, IoError>::Ok("bad header"), else => panic { "later page read" } }
+        },
+        readDirectory: function(path: String): Result<List<DirectoryEntry>, IoError> {
+            assert path == "./c";
+            Result<List<DirectoryEntry>, IoError>::Ok(List<DirectoryEntry>[
+                DirectoryEntry { name: "A.txt", kind: DirectoryEntryKind::File },
+                DirectoryEntry { name: "a.page", kind: DirectoryEntryKind::File },
+                DirectoryEntry { name: "b_bad.page", kind: DirectoryEntryKind::File }])
+        }, createDirectory: forbiddenCreate, writeTextFile: forbiddenWrite, writeStderr: failedStderr,
+    };
+    assert execute(List<String>["build", "site"], io) == 1;
+    assert branch on prepareBuild(BuildCommand { configPath: "site" }, io) {
+        Result<PreparedBuild, BuildError>::Ok => false,
+        Result<PreparedBuild, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == "levi: content: \"./c/a.page\" expected title and blank line\n",
+    };
+};
+@test let publishStopsAtFirstFailure: Function(): Unit = function(): Unit {
+    let build: PreparedBuild = PreparedBuild { state: OutputState::ExistingEmpty, plan: OutputPlan { outputRoot: "p", items: List<OutputItem>[
+        OutputItem { fileName: "a.html", path: "p/a.html", html: "A" },
+        OutputItem { fileName: "b.html", path: "p/b.html", html: "B" },
+        OutputItem { fileName: "c.html", path: "p/c.html", html: "C" }] } };
+    let io: IoFunctions = IoFunctions { readTextFile: forbiddenRead, readDirectory: forbiddenDirectory, createDirectory: forbiddenCreate,
+        writeTextFile: function(path: String, text: String): Result<Unit, IoError> {
+            branch when { path == "p/a.html" => { assert text == "A"; Result<Unit, IoError>::Ok(unit) },
+                path == "p/b.html" => Result<Unit, IoError>::Err(failure(IoOperation::WriteTextFile, IoErrorPhase::Cleanup, IoErrorKind::Other, path)),
+                else => panic { "write after failure" } }
+        }, writeStderr: failedStderr };
+    assert branch on publishBuild(build, io) { Result<Unit, BuildError>::Ok => false, Result<Unit, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == "levi: io: operation=WriteTextFile kind=Other subject=\"p/b.html\" phase=Cleanup\n" };
+};
+
+@test let phaseGuardThroughPrepare: Function(): Unit = function(): Unit {
+    loop over (List<IoErrorPhase>[IoErrorPhase::Body, IoErrorPhase::Cleanup] as phase: IoErrorPhase) {
+        let original: IoError = failure(IoOperation::ReadDirectory, phase, IoErrorKind::NotFound, "./p");
+        let io: IoFunctions = IoFunctions {
+            readTextFile: function(path: String): Result<String, IoError> {
+                branch when { path == "site" => Result<String, IoError>::Ok("title=S\ninput=c\noutput=p"),
+                    path == "./c/a.page" => Result<String, IoError>::Ok("title=A\n\n"), else => panic { "unexpected page" } }
+            },
+            readDirectory: function(path: String): Result<List<DirectoryEntry>, IoError> {
+                branch when { path == "./c" => Result<List<DirectoryEntry>, IoError>::Ok(List<DirectoryEntry>[DirectoryEntry { name: "a.page", kind: DirectoryEntryKind::File }]),
+                    path == "./p" => Result<List<DirectoryEntry>, IoError>::Err(original), else => panic { "unexpected directory" } }
+            }, createDirectory: forbiddenCreate, writeTextFile: forbiddenWrite, writeStderr: failedStderr,
+        };
+        assert execute(List<String>["build", "site"], io) == 1;
+        assert branch on prepareBuild(BuildCommand { configPath: "site" }, io) {
+            Result<PreparedBuild, BuildError>::Ok => false,
+            Result<PreparedBuild, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == formatDiagnostic(BuildError::Io(original)),
+        };
+    };
+};
+
+@test let inputIoIsPreserved: Function(): Unit = function(): Unit {
+    let original: IoError = failure(IoOperation::ReadDirectory, IoErrorPhase::Body, IoErrorKind::InvalidEncoding, "./c");
+    let io: IoFunctions = IoFunctions {
+        readTextFile: function(path: String): Result<String, IoError> { assert path == "site"; Result<String, IoError>::Ok("title=S\ninput=c\noutput=p") },
+        readDirectory: function(path: String): Result<List<DirectoryEntry>, IoError> { assert path == "./c"; Result<List<DirectoryEntry>, IoError>::Err(original) },
+        createDirectory: forbiddenCreate, writeTextFile: forbiddenWrite, writeStderr: failedStderr,
+    };
+    assert branch on prepareBuild(BuildCommand { configPath: "site" }, io) { Result<PreparedBuild, BuildError>::Ok => false, Result<PreparedBuild, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == formatDiagnostic(BuildError::Io(original)) };
+};
+@test let createFailureStopsWrites: Function(): Unit = function(): Unit {
+    let original: IoError = failure(IoOperation::CreateDirectory, IoErrorPhase::Target, IoErrorKind::NotFound, "parent/p");
+    let io: IoFunctions = IoFunctions { readTextFile: forbiddenRead, readDirectory: forbiddenDirectory,
+        createDirectory: function(path: String): Result<Unit, IoError> { assert path == "parent/p"; Result<Unit, IoError>::Err(original) },
+        writeTextFile: forbiddenWrite, writeStderr: failedStderr,
+    };
+    let build: PreparedBuild = PreparedBuild { state: OutputState::CreateRequired, plan: OutputPlan { outputRoot: "parent/p", items: List<OutputItem>[OutputItem { fileName: "a.html", path: "parent/p/a.html", html: "A" }] } };
+    assert branch on publishBuild(build, io) { Result<Unit, BuildError>::Ok => false, Result<Unit, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == formatDiagnostic(BuildError::Io(original)) };
+};
+@test let selectedKindsOnly: Function(): Unit = function(): Unit {
+    let original: IoError = failure(IoOperation::ReadDirectory, IoErrorPhase::Body, IoErrorKind::InvalidEncoding, "./p");
+    let io: IoFunctions = IoFunctions {
+        readTextFile: function(path: String): Result<String, IoError> {
+            branch when { path == "site" => Result<String, IoError>::Ok("title=S\ninput=c\noutput=p"),
+                path == "./c/a.page" => Result<String, IoError>::Ok("title=A\n\n"), else => panic { "read unselected entry" } }
+        },
+        readDirectory: function(path: String): Result<List<DirectoryEntry>, IoError> {
+            branch when { path == "./c" => Result<List<DirectoryEntry>, IoError>::Ok(List<DirectoryEntry>[
+                DirectoryEntry { name: "A.page", kind: DirectoryEntryKind::Directory },
+                DirectoryEntry { name: "B.page", kind: DirectoryEntryKind::Symlink },
+                DirectoryEntry { name: "C.page", kind: DirectoryEntryKind::Other },
+                DirectoryEntry { name: "D.PAGE", kind: DirectoryEntryKind::File },
+                DirectoryEntry { name: "a.page", kind: DirectoryEntryKind::File }]),
+                path == "./p" => Result<List<DirectoryEntry>, IoError>::Err(original), else => panic { "unexpected directory" } }
+        }, createDirectory: forbiddenCreate, writeTextFile: forbiddenWrite, writeStderr: failedStderr,
+    };
+    assert branch on prepareBuild(BuildCommand { configPath: "site" }, io) { Result<PreparedBuild, BuildError>::Ok => false, Result<PreparedBuild, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == formatDiagnostic(BuildError::Io(original)) };
+};
+
+@test let laterPageFailureStopsPreflight: Function(): Unit = function(): Unit {
+    let io: IoFunctions = IoFunctions {
+        readTextFile: function(path: String): Result<String, IoError> {
+            branch when { path == "site" => Result<String, IoError>::Ok("title=S\ninput=c\noutput=p"),
+                path == "./c/a.page" => Result<String, IoError>::Ok("title=A\n\nbody"),
+                path == "./c/b.page" => Result<String, IoError>::Ok("invalid"), else => panic { "unexpected read" } }
+        },
+        readDirectory: function(path: String): Result<List<DirectoryEntry>, IoError> {
+            assert path == "./c";
+            Result<List<DirectoryEntry>, IoError>::Ok(List<DirectoryEntry>[
+                DirectoryEntry { name: "a.page", kind: DirectoryEntryKind::File },
+                DirectoryEntry { name: "b.page", kind: DirectoryEntryKind::File }])
+        }, createDirectory: forbiddenCreate, writeTextFile: forbiddenWrite, writeStderr: failedStderr,
+    };
+    assert branch on prepareBuild(BuildCommand { configPath: "site" }, io) {
+        Result<PreparedBuild, BuildError>::Ok => false,
+        Result<PreparedBuild, BuildError>::Err(error: BuildError) => formatDiagnostic(error) == "levi: content: \"./c/b.page\" expected title and blank line\n",
+    };
+};

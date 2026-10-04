@@ -1,0 +1,11 @@
+namespace Levi\App;
+use Std\Io\{IoError, DirectoryEntry, readTextFile, readDirectory, createDirectory, writeTextFile, writeStderr};
+public type IoFunctions = product {
+    readTextFile: Function(String): Result<String, IoError>;
+    readDirectory: Function(String): Result<List<DirectoryEntry>, IoError>;
+    createDirectory: Function(String): Result<Unit, IoError>;
+    writeTextFile: Function(String, String): Result<Unit, IoError>;
+    writeStderr: Function(String): Result<Unit, IoError>;
+};
+public let realIo: IoFunctions = IoFunctions { readTextFile: readTextFile, readDirectory: readDirectory,
+    createDirectory: createDirectory, writeTextFile: writeTextFile, writeStderr: writeStderr };

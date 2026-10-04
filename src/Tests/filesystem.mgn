@@ -1,0 +1,21 @@
+namespace Levi\Tests;
+use Std\Io\{readTextFile, readDirectory, IoError, DirectoryEntry};
+use Levi\App\{execute, realIo};
+@test let referenceSite: Function(): Unit = function(): Unit {
+    assert execute(List<String>["build", "fixtures/work/reference/site.cfg"], realIo) == 0;
+    let actual: String = branch on readTextFile("fixtures/work/reference/public/home.html") {
+        Result<String, IoError>::Ok(value: String) => value, Result<String, IoError>::Err => panic { "reference output missing" },
+    };
+    let expected: String = branch on readTextFile("fixtures/work/reference/home.expected") {
+        Result<String, IoError>::Ok(value: String) => value, Result<String, IoError>::Err => panic { "reference golden missing" },
+    };
+    assert actual == expected;
+    let about: String = branch on readTextFile("fixtures/work/reference/public/about.html") {
+        Result<String, IoError>::Ok(value: String) => value, Result<String, IoError>::Err => panic { "about output missing" },
+    };
+    let aboutExpected: String = branch on readTextFile("fixtures/work/reference/about.expected") {
+        Result<String, IoError>::Ok(value: String) => value, Result<String, IoError>::Err => panic { "about golden missing" },
+    };
+    assert about == aboutExpected;
+    assert branch on readDirectory("fixtures/work/reference/public") { Result<List<DirectoryEntry>, IoError>::Ok(entries: List<DirectoryEntry>) => entries->length() == 2, Result<List<DirectoryEntry>, IoError>::Err => false };
+};
