@@ -101,3 +101,8 @@ has been resolved.
 
 The v0.0.1 implementation is under development on its version work branch.
 Release publication is a separate step.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for public contribution conventions
+and validation requirements.
