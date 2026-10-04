@@ -1,14 +1,14 @@
 """Separate native process measurements for scanning and prepared fragment assembly."""
 from pathlib import Path
 import json, shutil, statistics
-from verify import ROOT, digest
+from verify import digest
 
 def measure(s):
     project=s.root/'measurement';(project/'src/Core').mkdir(parents=True)
     (project/'mognitio.toml').write_text('[project]\nname="levi"\nroot_namespace="Levi"\n')
     copied={}
     for name in ['model.mgn','text.mgn']:
-        source=ROOT/'src/Core'/name;shutil.copy2(source,project/'src/Core'/name);copied[name]=digest(source.read_bytes())
+        source=s.project/'src/Core'/name;shutil.copy2(source,project/'src/Core'/name);copied[name]=digest(source.read_bytes())
     results=[];repetitions=4
     for kind in ['scan-control','scan','join-control','join']:
         setup='let parts:List<String>=text->scalars();' if kind.startswith('join') else ''

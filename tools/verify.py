@@ -27,22 +27,29 @@ def snapshot(root):
 
 class Session:
     def __init__(self, compiler, evidence):
+        self.levi = ROOT
         self.compiler = compiler.resolve(); self.mgn = self.compiler/'bin/mgn'
-        self.evidence = evidence.resolve(); self.evidence.mkdir(parents=True, exist_ok=False)
+        self.evidence = evidence.resolve()
+        self.evidence.mkdir(parents=True, exist_ok=False)
         self.root = Path(tempfile.mkdtemp(prefix='levi-v001-')).resolve()
         self.slot = self.root/'slot'; self.project = self.root/'project'; self.image = self.root/'levi'
-        self.project.mkdir(); shutil.copytree(ROOT/'src', self.project/'src')
-        shutil.copy2(ROOT/'mognitio.toml', self.project/'mognitio.toml')
+        self.project.mkdir()
+        for name in git(self.levi,'ls-files').splitlines():
+            source=self.levi/name
+            if name=='mognitio.toml' or name.startswith(('src/','sample/','fixtures/golden/')):
+                target=self.project/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
         self.manifest = self.project/'mognitio.toml'; self.records = []; self.active = None
-        self.metadata = {'levi_commit': git(ROOT,'rev-parse','HEAD'), 'levi_dirty': git(ROOT,'status','--porcelain'),
+        self.metadata = {'levi_commit': git(self.levi,'rev-parse','HEAD'), 'levi_dirty': git(self.levi,'status','--porcelain'),
             'compiler_commit': git(self.compiler,'rev-parse','HEAD'), 'compiler_dirty': git(self.compiler,'status','--porcelain'),
             'python': platform.python_version(), 'host': platform.uname()._asdict(),
             'uid': os.geteuid(), 'initial_v013_trial': 'not run: accepted v0.14 design uses phase/scalars/join; no old-version port',
-            'source_sha256': {str(p.relative_to(ROOT)):digest(p.read_bytes()) for p in sorted((ROOT/'src').rglob('*.mgn'))}}
-        files=git(ROOT,'ls-files','--cached','--others','--exclude-standard').splitlines()
-        self.metadata['working_tree_sha256']={name:digest((ROOT/name).read_bytes()) for name in sorted(set(files)) if (ROOT/name).is_file()}
+            'source_sha256': {str(p.relative_to(self.project)):digest(p.read_bytes()) for p in sorted((self.project/'src').rglob('*.mgn'))}}
+        for label,repo in [('levi',self.levi),('compiler',self.compiler)]:
+            files=git(repo,'ls-files','--cached','--others','--exclude-standard').splitlines()
+            self.metadata[label+'_files_sha256']={name:digest((repo/name).read_bytes()) for name in sorted(set(files)) if (repo/name).is_file()}
         assert os.geteuid() != 0, 'permission fixtures require a non-root user'
         self.save()
+    def reference(self,p): shutil.copytree(self.project/'sample',p,dirs_exist_ok=True)
     def save(self):
         (self.evidence/'results.json').write_text(json.dumps({'metadata':self.metadata,'records':self.records},ensure_ascii=True,indent=2)+'\n')
     def command(self, argv, cwd=None, timeout=90):
@@ -55,8 +62,9 @@ class Session:
             self.last_interrupted={'argv':[os.fsdecode(x) for x in argv],'cwd':str(cwd),'exit':self.active.returncode,'stdout':out.hex(),'stderr':err.hex(),'interrupted':True}
             raise
         finally: self.active=None
-        return {'argv':[os.fsdecode(x) for x in argv], 'cwd':str(cwd), 'exit':code,
+        self.last_command={'argv':[os.fsdecode(x) for x in argv], 'cwd':str(cwd), 'exit':code,
                 'stdout':out.hex(),'stderr':err.hex(),'process_elapsed_seconds':time.monotonic()-started}
+        return self.last_command
     def remove(self,path):
         # Only owned descendants; symlink roots are unlinked without following their target.
         assert path.parent.resolve().is_relative_to(self.root) and path != self.root
@@ -108,33 +116,36 @@ class Session:
             else: child.unlink()
         self.root.rmdir()
 
-def reference(p): shutil.copytree(ROOT/'sample',p,dirs_exist_ok=True)
 def change_config(p,data): (p/'site.cfg').write_bytes(data if isinstance(data,bytes) else data.encode())
-def config_case(data):
+def config_case(data,reference):
     def setup(p): reference(p);change_config(p,data)
     return setup
-def page_case(data):
+def page_case(data,reference):
     def setup(p): reference(p);(p/'content/home.page').write_bytes(data if isinstance(data,bytes) else data.encode())
     return setup
 
 def ordinary(s):
-    gold={p.name:p.read_bytes() for p in (ROOT/'fixtures/golden').glob('*.html')}
+    reference=s.reference
+    config_fixture=lambda data: config_case(data,reference)
+    page_fixture=lambda data: page_case(data,reference)
+    gold={p.name:p.read_bytes() for p in (s.project/'fixtures/golden').glob('*.html')}
     s.pair('reference',[1,8,13,15,16,18,19,24,27],reference,expected=gold)
     s.pair('repeat-reference',[17,33],reference,expected=gold)
     for n,args in enumerate([[],['build'],['help','site.cfg'],['Build','site.cfg'],['build',''],['build','site.cfg','extra']]):
-        s.pair(f'usage-{n}',[2,24],reference,args,2,'usage',subject='levi build <config-path>',unchanged=True)
+        s.pair(f'usage-{n}',[2,24],reference,args,2,'usage',subject=('invalid argument count \"arguments\"' if n in [0,1,5] else 'empty config path \"\"' if n==4 else 'unknown command \"'+args[0]+'\"'),unchanged=True)
+    s.pair('usage-escaped',[2,24,25],reference,['bad\n\"\\\u2028','site.cfg'],2,'usage',subject='unknown command \"bad\\n\\\"\\\\\\u{2028}\"',unchanged=True)
     for n,text in enumerate(['output=public\n\ninput=content\ntitle= S=1 ', 'title="S"\ninput=content\noutput=public\n']):
         title=' S=1 ' if n==0 else '&quot;S&quot;'
         expected={k:v.replace('小さなサイト'.encode(),title.encode()) for k,v in gold.items()}
-        s.pair(f'config-order-{n}',[1,4,5],config_case(text),expected=expected)
+        s.pair(f'config-order-{n}',[1,4,5],config_fixture(text),expected=expected)
     bad=['title=A\ninput=content','title=A\ninput=content\noutput=public\nx=y','title=A\ntitle=B\ninput=content\noutput=public',
          'title=\ninput=content\noutput=public','title= \ninput=content\noutput=public','title=A\tB\ninput=content\noutput=public',
          ' title=A\ninput=content\noutput=public','title=A\ninput=content\noutput=public\n# comment']
-    for n,text in enumerate(bad): s.pair(f'bad-config-{n}',[5,24],config_case(text),code=1,category='config',unchanged=True)
+    for n,text in enumerate(bad): s.pair(f'bad-config-{n}',[5,24],config_fixture(text),code=1,category='config',unchanged=True)
     for n,path in enumerate(['/public','p//q','p/','p/../q','p/./q','P','p q','p\\q','日','_p','']):
-        s.pair(f'bad-path-{n}',[6],config_case('title=S\ninput=content\noutput='+path),code=1,category='config',unchanged=True)
-    for n,path in enumerate(['content','content/child']): s.pair(f'overlap-{n}',[7],config_case('title=S\ninput=content\noutput='+path),code=1,category='config',unchanged=True)
-    s.pair('ancestor-input',[7],config_case('title=S\ninput=public/child\noutput=public'),code=1,category='config',unchanged=True)
+        s.pair(f'bad-path-{n}',[6],config_fixture('title=S\ninput=content\noutput='+path),code=1,category='config',unchanged=True)
+    for n,path in enumerate(['content','content/child']): s.pair(f'overlap-{n}',[7],config_fixture('title=S\ninput=content\noutput='+path),code=1,category='config',unchanged=True)
+    s.pair('ancestor-input',[7],config_fixture('title=S\ninput=public/child\noutput=public'),code=1,category='config',unchanged=True)
     def prefix(p): reference(p);(p/'content').rename(p/'public2');change_config(p,'title=小さなサイト\ninput=public2\noutput=public')
     s.pair('prefix-only',[7],prefix,expected=gold)
     def spaces(p):
@@ -148,16 +159,16 @@ def ordinary(s):
         reference(p)
         for file in [p/'site.cfg',*sorted((p/'content').glob('*.page'))]: file.write_bytes(file.read_bytes().replace(b'\n',b'\r\n'))
     s.pair('crlf',[8],crlf,expected=gold)
-    for n,data in enumerate([b'\xff',b'\xef\xbb\xbf'+(ROOT/'sample/site.cfg').read_bytes(),b'title=S\rinput=c\noutput=p',b'title=S\x00\ninput=c\noutput=p']):
-        s.pair(f'config-envelope-{n}',[8,26],config_case(data),code=1,category='io' if n==0 else 'config',unchanged=True)
+    for n,data in enumerate([b'\xff',b'\xef\xbb\xbf'+(s.project/'sample/site.cfg').read_bytes(),b'title=S\rinput=c\noutput=p',b'title=S\x00\ninput=c\noutput=p']):
+        s.pair(f'config-envelope-{n}',[8,26],config_fixture(data),code=1,category='io' if n==0 else 'config',unchanged=True)
     for n,data in enumerate([b'\xff',b'\xef\xbb\xbftitle=T\n\n',b'title=T\n\nx\r',b'title=T\n\n\x7f',b'title=T\n\n\r\r\n']):
-        s.pair(f'page-envelope-{n}',[8,26],page_case(data),code=1,category='io' if n==0 else 'content',unchanged=True)
+        s.pair(f'page-envelope-{n}',[8,26],page_fixture(data),code=1,category='io' if n==0 else 'content',unchanged=True)
     for n,data in enumerate(['','title=\n\n','title=T','title=T\n','title=T\n \nbody']):
-        s.pair(f'page-grammar-{n}',[9],page_case(data),code=1,category='content',unchanged=True)
+        s.pair(f'page-grammar-{n}',[9],page_fixture(data),code=1,category='content',unchanged=True)
     for n,body in enumerate(['','\n\ttitle=\'x\'\n','日本😀e\u0301\ufeff','&<>"\'&amp;']):
         encoded=['','\n\ttitle=&#39;x&#39;\n','日本😀e\u0301\ufeff','&amp;&lt;&gt;&quot;&#39;&amp;amp;'][n]
         expected=dict(gold);expected['home.html']=gold['home.html'].replace(b'&lt;hello&gt;',encoded.encode())
-        s.pair(f'body-{n}',[9,10,15,16],page_case('title=Home & More\n\n'+body),expected=expected)
+        s.pair(f'body-{n}',[9,10,15,16],page_fixture('title=Home & More\n\n'+body),expected=expected)
     def selection(p):
         reference(p);(p/'content/Bad.page').symlink_to('missing');(p/'content/BadDir.page').mkdir();os.mkfifo(p/'content/BadPipe.page');(p/'content/bad.PAGE').write_bytes(b'\xff')
     s.pair('entry-selection',[11,12],selection,expected=gold)
@@ -182,14 +193,14 @@ def ordinary(s):
             elif kind=='symlink': (p/'public/link').symlink_to('../content/home.page')
             else: (p/'public'/({'dotfile':'.keep','generated':'home.html'}.get(kind,'keep'))).write_bytes(b'kept')
         s.pair('nonempty-'+kind,[20,24],nonempty,code=1,category='output-not-empty',unchanged=True)
-    s.pair('missing-output-parent',[21],config_case('title=S\ninput=content\noutput=missing/public'),code=1,category='io',io={'operation':'CreateDirectory','phase':'Target','kind':'NotFound'},unchanged=True)
+    s.pair('missing-output-parent',[21],config_fixture('title=S\ninput=content\noutput=missing/public'),code=1,category='io',io={'operation':'CreateDirectory','phase':'Target','kind':'NotFound'},unchanged=True)
     def bad_parent(p): reference(p);change_config(p,'title=S\ninput=content\noutput=parent/public');(p/'parent').write_text('file')
     s.pair('file-output-parent',[21],bad_parent,code=1,category='io',unchanged=True)
     def output_file(p): reference(p);(p/'public').write_text('file')
     s.pair('output-file',[21],output_file,code=1,category='io',unchanged=True)
     def mkdir_permission(p): reference(p);(p/'locked').mkdir();(p/'locked').chmod(0o500);change_config(p,'title=S\ninput=content\noutput=locked/public')
     s.pair('mkdir-permission',[21],mkdir_permission,code=1,category='io',io={'operation':'CreateDirectory','kind':'PermissionDenied'},unchanged=True)
-    s.pair('later-invalid',[22,26],page_case('invalid'),code=1,category='content',subject='home.page',unchanged=True)
+    s.pair('later-invalid',[22,26],page_fixture('invalid'),code=1,category='content',subject='home.page',unchanged=True)
     def first_invalid(p): reference(p);(p/'content/about.page').write_text('invalid');(p/'content/home.page').write_bytes(b'\xff')
     s.pair('first-invalid',[26],first_invalid,code=1,category='content',subject='about.page',unchanged=True)
     def raw_name(p): existing_empty(p);fd=os.open(os.fsencode(p/'public')+b'/\xff',os.O_CREAT|os.O_WRONLY,0o600);os.write(fd,b'kept');os.close(fd)
@@ -199,13 +210,15 @@ def ordinary(s):
     s.pair('control-subject',[25],reference,args=['build','missing\n\r\t\\"\x01\x85\u2028'],code=1,category='io',subject='missing\\n\\r\\t\\\\\\"\\u{1}\\u{85}\\u{2028}',unchanged=True)
 
 def runtime_checks(s):
+    reference=s.reference
     s.prepare(reference)
-    unit=s.slot/'fixtures/work/reference';unit.parent.mkdir(parents=True);shutil.copytree(ROOT/'sample',unit)
-    shutil.copy2(ROOT/'fixtures/golden/home.html',unit/'home.expected')
-    shutil.copy2(ROOT/'fixtures/golden/about.html',unit/'about.expected')
+    unit=s.slot/'fixtures/work/reference';unit.parent.mkdir(parents=True);shutil.copytree(s.project/'sample',unit)
+    shutil.copy2(s.project/'fixtures/golden/home.html',unit/'home.expected')
+    shutil.copy2(s.project/'fixtures/golden/about.html',unit/'about.expected')
     result=s.command([s.mgn,'test',s.manifest],timeout=240)
-    assert result['exit']==0 and b'failed=0 errors=0 aborted=0 not_run=0' in bytes.fromhex(result['stdout']),(result,)
-    s.record('mognitio-tests',[28], 'mgn-test', result,{},snapshot(s.slot),{'dl':[f'DL001-{i:02}' for i in range(1,12)]})
+    from evidence import parse_tests
+    tests=parse_tests(result)
+    s.record('mognitio-tests',[28], 'mgn-test', result,{},snapshot(s.slot),{'tests':tests})
     for backend in ['run','native']:
         s.prepare(reference);before=snapshot(s.slot)
         result=s.command(s.argv(backend,[b'build',b'\xff']))
@@ -217,7 +230,7 @@ def runtime_checks(s):
     argv=['bwrap','--unshare-all','--die-with-parent','--new-session','--ro-bind',s.image,'/levi','--bind',s.slot,'/data','--chdir','/data','/levi','build','site.cfg']
     result=s.command(argv)
     assert result['exit']==0 and result['stdout']==result['stderr']=='',result
-    for name in ['home.html','about.html']: assert (s.slot/'public'/name).read_bytes()==(ROOT/'fixtures/golden'/name).read_bytes()
+    for name in ['home.html','about.html']: assert (s.slot/'public'/name).read_bytes()==(s.project/'fixtures/golden'/name).read_bytes()
     s.record('standalone',[29], 'isolated-native', result,before,snapshot(s.slot),{'namespace_files':['/levi','/data (fixture only)'],'elf':subprocess.check_output(['file',s.image],text=True)})
     # Exercise the exact timeout/kill/reap cleanup path, then rebuild fresh data.
     s.prepare(reference);before=snapshot(s.slot);trace=s.evidence/'interrupted.trace'
@@ -228,9 +241,10 @@ def runtime_checks(s):
     assert s.active is None and (s.slot/'public/about.html').exists() and 'write(' in trace.read_text()
     s.record('external-interruption',[33],'native',s.last_interrupted,before,snapshot(s.slot),{'trace_files':[trace.name]})
     s.prepare(reference);assert not (s.slot/'public').exists()
-    s.pair('after-interruption',[33],reference,expected={p.name:p.read_bytes() for p in (ROOT/'fixtures/golden').glob('*.html')})
+    s.pair('after-interruption',[33],reference,expected={p.name:p.read_bytes() for p in (s.project/'fixtures/golden').glob('*.html')})
 
 def main():
+    if not __debug__: raise SystemExit('Do not disable verification assertions with -O or PYTHONOPTIMIZE')
     parser=argparse.ArgumentParser();parser.add_argument('--compiler',type=Path,required=True);parser.add_argument('--evidence',type=Path,required=True);parser.add_argument('--only',choices=['ordinary','faults','measure','all'],default='all');args=parser.parse_args()
     s=Session(args.compiler,args.evidence)
     try:
@@ -246,7 +260,7 @@ def main():
         if args.only=='all':
             from coverage import write_coverage
             write_coverage(s)
-        s.metadata['complete']=True;s.save();print(f'PASS records={len(s.records)} evidence={s.evidence}',flush=True)
+        s.metadata['scope']=args.only;s.metadata['complete']=True;s.save();print(f'PASS records={len(s.records)} evidence={s.evidence}',flush=True)
     finally: s.close()
 
 if __name__=='__main__': main()

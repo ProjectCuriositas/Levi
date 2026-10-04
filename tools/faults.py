@@ -1,7 +1,7 @@
 """Externally calibrated syscall failures, never compiler-private test hooks."""
 from pathlib import Path
 import re, subprocess
-from verify import ROOT, reference, snapshot
+from verify import snapshot
 
 LINE=re.compile(r'^(\d+)\s+(\w+)\(')
 def syscalls(text):
@@ -20,8 +20,8 @@ def syscalls(text):
         else: rows.append((pid,call,counts[key],line))
     return rows
 
-def kept(p): reference(p);(p/'public').mkdir();(p/'public/keep').write_bytes(b'unchanged')
-def three(p):
+def kept(p,reference): reference(p);(p/'public').mkdir();(p/'public/keep').write_bytes(b'unchanged')
+def three(p,reference):
     reference(p);(p/'content/z.page').write_text('title=Later\n\nNever write this')
 
 def inject(s,name,setup,selector,errno,code,category,fields,unchanged=False,partial=False):
@@ -55,8 +55,8 @@ def inject(s,name,setup,selector,errno,code,category,fields,unchanged=False,part
             assert not writes,(name,'publish reached',writes)
         if partial:
             assert sorted(p.name for p in (s.slot/'public').iterdir())==['about.html','home.html']
-            assert (s.slot/'public/about.html').read_bytes()==(ROOT/'fixtures/golden/about.html').read_bytes()
-            if name=='write-close': assert (s.slot/'public/home.html').read_bytes()==(ROOT/'fixtures/golden/home.html').read_bytes()
+            assert (s.slot/'public/about.html').read_bytes()==(s.project/'fixtures/golden/about.html').read_bytes()
+            if name=='write-close': assert (s.slot/'public/home.html').read_bytes()==(s.project/'fixtures/golden/home.html').read_bytes()
             else: assert (s.slot/'public/home.html').read_bytes()==b''
         s.record(name,[23] if partial else [25] if name=='stderr' else [32,36,37],backend,result,before,after,
             {'calibration':{'syscall':call,'ordinal':ordinal,'baseline_line':line,'injected_line':hits[0][3]},
@@ -66,18 +66,21 @@ def inject(s,name,setup,selector,errno,code,category,fields,unchanged=False,part
     assert observed[0]==observed[1],(name,'backend difference')
 
 def verify_faults(s):
+    reference=s.reference
+    keep_fixture=lambda p:kept(p,reference)
+    three_fixture=lambda p:three(p,reference)
     s.metadata['strace']=subprocess.check_output(['strace','--version'],text=True).splitlines()[0];s.save()
     output_fd=lambda line,p:'<'+str(p/'public')+'>' in line
-    inject(s,'output-body',kept,lambda call,line,p:call=='getdents64' and output_fd(line,p),'ENOENT',1,'io',
+    inject(s,'output-body',keep_fixture,lambda call,line,p:call=='getdents64' and output_fd(line,p),'ENOENT',1,'io',
            ['operation=ReadDirectory','kind=NotFound','subject="./public"','phase=Body'],unchanged=True)
-    inject(s,'output-cleanup',kept,lambda call,line,p:call=='close' and output_fd(line,p),'ENOENT',1,'io',
+    inject(s,'output-cleanup',keep_fixture,lambda call,line,p:call=='close' and output_fd(line,p),'ENOENT',1,'io',
            ['operation=ReadDirectory','kind=NotFound','subject="./public"','phase=Cleanup'],unchanged=True)
-    inject(s,'output-metadata',kept,lambda call,line,p:call=='newfstatat' and output_fd(line,p) and '"keep"' in line,'ENOENT',1,'io',
+    inject(s,'output-metadata',keep_fixture,lambda call,line,p:call=='newfstatat' and output_fd(line,p) and '"keep"' in line,'ENOENT',1,'io',
            ['operation=ReadDirectory','kind=NotFound','subject="./public/keep"','phase=Body'],unchanged=True)
-    inject(s,'write-body',three,lambda call,line,p:call=='write' and '<'+str(p/'public/home.html')+'>' in line,'EIO',1,'io',
+    inject(s,'write-body',three_fixture,lambda call,line,p:call=='write' and '<'+str(p/'public/home.html')+'>' in line,'EIO',1,'io',
            ['operation=WriteTextFile','kind=Other','subject="./public/home.html"','phase=Body'],partial=True)
-    inject(s,'write-close',three,lambda call,line,p:call=='close' and '<'+str(p/'public/home.html')+'>' in line,'EIO',1,'io',
+    inject(s,'write-close',three_fixture,lambda call,line,p:call=='close' and '<'+str(p/'public/home.html')+'>' in line,'EIO',1,'io',
            ['operation=WriteTextFile','kind=Other','subject="./public/home.html"','phase=Cleanup'],partial=True)
-    inject(s,'stderr',kept,lambda call,line,p:call=='write' and re.search(r'write\(2(?:<|,)',line) is not None and 'levi:' in line,'EPIPE',1,None,[],unchanged=True)
+    inject(s,'stderr',keep_fixture,lambda call,line,p:call=='write' and re.search(r'write\(2(?:<|,)',line) is not None and 'levi:' in line,'EPIPE',1,None,[],unchanged=True)
     # Real missing-root counterpart: same operation/kind/subject, Target enables publication.
-    s.pair('target-missing-counterpart',[19,36,37],reference,expected={p.name:p.read_bytes() for p in (ROOT/'fixtures/golden').glob('*.html')})
+    s.pair('target-missing-counterpart',[19,36,37],reference,expected={p.name:p.read_bytes() for p in (s.project/'fixtures/golden').glob('*.html')})

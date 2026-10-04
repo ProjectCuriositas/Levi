@@ -114,7 +114,7 @@ let labelIoErrorPhase: Function(IoErrorPhase): String = function(value: IoErrorP
 
 public let formatDiagnostic: Function(BuildError): String = function(error: BuildError): String {
     let detail: String = branch on error {
-        BuildError::Usage(problem: FormatFailure) => "usage: " + problem->reason,
+        BuildError::Usage(problem: FormatFailure) => "usage: " + problem->reason + " " + quoteSubject(problem->subject) + "; expected levi build <config-path>",
         BuildError::Config(context: FormatContext) => "config: " + quoteSubject(context->path) + " " + context->failure->reason + " " + quoteSubject(context->failure->subject),
         BuildError::Content(context: FormatContext) => "content: " + quoteSubject(context->path) + " " + context->failure->reason,
         BuildError::EmptyInput(path: String) => "empty-input: " + quoteSubject(path),
