@@ -99,8 +99,9 @@ processing currently has significant allocation-search overhead. Correct
 output and acceptance results do not imply that this performance limitation
 has been resolved.
 
-The v0.0.1 implementation is under development on its version work branch.
-Release publication is a separate step.
+v0.0.1 is the initial source release for Linux amd64. Build it with Mognitio
+v0.14.0; no prebuilt executable is included. See the
+[release verification](verification/v0.0.1-release.md) for tested scope and limits.
 
 ## Contributing
 
@@ -112,7 +113,7 @@ and validation requirements.
 After a full verification run, validate the observer's negative controls:
 
 ```sh
-python3 tools/regression.py --compiler ../Mognitio --evidence evidence/contribution-check
+python3 tools/regression.py --compiler ../Mognitio --evidence evidence/acceptance
 ```
 
 Use the evidence directory from that full run, once. The checks reject missing,
