@@ -1,14 +1,14 @@
 # Lévi
 
-Lévi is a web application framework written in Mognitio. Its first increment,
-v0.0.1, is a minimal static site generator that turns a single directory of
+Lévi is a web application framework written in Mognitio. Version 0.0.2
+is a minimal static site generator that turns a single directory of
 plain-text pages into HTML files.
 
 ## Build and run
 
 The build host is Linux amd64 with [Mognitio](https://github.com/ProjectCuriositas/Mognitio)
-v0.14.0. The tested compiler revision is
-`31eae7795d0152491d80fa57fd017f084e6bf934`.
+v1.0.0. The tested compiler revision is
+`fd7d91e24154a9cb04069b884cdf5667d5f4b86c`.
 Follow the compiler repository's setup instructions so `mgn` is available.
 
 ```sh
@@ -99,9 +99,9 @@ processing currently has significant allocation-search overhead. Correct
 output and acceptance results do not imply that this performance limitation
 has been resolved.
 
-v0.0.1 is the initial source release for Linux amd64. Build it with Mognitio
-v0.14.0; no prebuilt executable is included. See the
-[release verification](verification/v0.0.1-release.md) for tested scope and limits.
+v0.0.2 is a source release for Linux amd64, verified with Mognitio v1.0.0.
+The generator behavior is unchanged from v0.0.1; no prebuilt executable is included.
+See the [release verification](verification/v0.0.2-release.md) for tested scope and limits.
 
 ## Contributing
 
